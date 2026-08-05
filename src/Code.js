@@ -327,7 +327,13 @@ function getAllData(token) {
   return collectAll_();
 }
 
-/** 편집기에서 직접 실행 중인지 (익명 웹앱 호출과 구분) */
+/**
+ * 편집기에서 직접 실행 중인지 (익명 웹앱 호출과 구분).
+ * 익명 방문자는 getActiveUser()가 빈 값이라 false가 된다.
+ *
+ * ⚠ appsscript.json의 oauthScopes에 userinfo.email 이 있어야 동작한다.
+ *   빠지면 항상 false가 되어 편집기에서 diagnose()를 못 돌린다.
+ */
 function isOwner_() {
   try {
     const active = Session.getActiveUser().getEmail();
