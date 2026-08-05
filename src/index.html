@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>경남수학문화관 운영 만족도</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Apple SD Gothic Neo','Noto Sans KR',sans-serif;font-size:14px;background:#f0f2f5;color:#1a1a1a}
+
+/* ── 게이트 ── */
+#gate{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden}
+#gate-bg{position:absolute;inset:0;background:linear-gradient(160deg,#0a1628 0%,#1a3a6e 60%,#0d2244 100%)}
+#gate-scene{position:absolute;inset:0;background-size:cover;background-position:center;background-repeat:no-repeat;opacity:0.18}
+.gate-box{position:relative;background:rgba(255,255,255,0.97);border-radius:16px;padding:40px 36px;width:340px;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,0.4)}
+.gate-logo{width:120px;margin:0 auto 16px;display:block}
+.gate-title{font-size:16px;font-weight:700;color:#1a2a4a;margin-bottom:2px}
+.gate-sub{font-size:12px;color:#888;margin-bottom:24px}
+.gate-dots{display:flex;justify-content:center;gap:10px;margin-bottom:20px}
+.dot{width:13px;height:13px;border-radius:50%;border:2px solid #ccc;background:#fff;transition:all .15s}
+.dot.filled{background:#1a3a6e;border-color:#1a3a6e}
+.dot.error{background:#E24B4A;border-color:#E24B4A}
+.gate-input-wrap{position:relative;margin-bottom:10px}
+.gate-input-wrap input{width:100%;padding:12px 40px 12px 16px;border:1.5px solid #ddd;border-radius:8px;font-size:22px;letter-spacing:10px;text-align:center;background:#fafafa;color:#1a1a1a;transition:border-color .2s}
+.gate-input-wrap input:focus{outline:none;border-color:#1a3a6e;background:#fff}
+.gate-input-wrap input.error{border-color:#E24B4A;animation:shake .3s}
+.eye-btn{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:17px;color:#aaa}
+.gate-btn{width:100%;padding:12px;border:none;border-radius:8px;background:#1a3a6e;color:#fff;font-size:15px;font-weight:600;cursor:pointer;transition:background .2s;margin-top:6px}
+.gate-btn:hover{background:#0d2244}
+.gate-error{font-size:12px;color:#E24B4A;min-height:16px;margin-bottom:4px}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+
+/* ── 헤더 ── */
+#app{display:none}
+header{background:#1a3a6e;padding:0 20px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.25)}
+.header-top{display:flex;align-items:center;gap:12px;padding:10px 0 6px}
+.header-logo{height:36px}
+.header-title{color:#fff;font-size:15px;font-weight:700;flex:1}
+.sel-wrap{display:flex;gap:6px;align-items:center}
+.sel-wrap select{padding:5px 10px;border:1px solid rgba(255,255,255,0.3);border-radius:6px;background:rgba(255,255,255,0.12);color:#fff;font-size:13px;cursor:pointer}
+.sel-wrap select option{background:#1a3a6e;color:#fff}
+.btn-refresh{padding:5px 12px;border:1px solid rgba(255,255,255,0.4);border-radius:6px;background:transparent;color:#fff;font-size:12px;cursor:pointer}
+.btn-refresh:hover{background:rgba(255,255,255,0.15)}
+
+/* ── 탭 ── */
+.tab-bar{display:flex;gap:2px;overflow-x:auto;padding-bottom:0;scrollbar-width:none}
+.tab-bar::-webkit-scrollbar{display:none}
+.tab-btn{flex-shrink:0;padding:8px 14px;font-size:12px;font-weight:500;color:rgba(255,255,255,0.6);border:none;background:transparent;cursor:pointer;border-bottom:3px solid transparent;transition:all .15s;white-space:nowrap}
+.tab-btn:hover{color:rgba(255,255,255,0.9)}
+.tab-btn.active{color:#fff;border-bottom-color:#5db8f5;font-weight:700}
+
+/* ── 컨텐츠 ── */
+.wrap{max-width:1100px;margin:0 auto;padding:20px 16px}
+.loading{text-align:center;padding:60px 0;color:#888}
+.empty{text-align:center;padding:40px;color:#aaa}
+
+/* ── 카드 ── */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-bottom:16px}
+.card{background:#fff;border-radius:8px;padding:12px 14px;border:1px solid #e8e8e8}
+.card-label{font-size:11px;color:#888;margin-bottom:5px}
+.card-val{font-size:22px;font-weight:700;color:#1a2a4a}
+.card-val span{font-size:12px;font-weight:400;color:#999;margin-left:2px}
+
+/* ── 섹션 ── */
+.section{background:#fff;border-radius:8px;border:1px solid #e8e8e8;padding:18px 20px;margin-bottom:16px}
+.section-title{font-size:14px;font-weight:700;color:#1a2a4a;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.section-title select{font-size:12px;padding:4px 10px;border:1px solid #ddd;border-radius:6px;font-weight:400;color:#333}
+
+/* ── 테이블 ── */
+.scroll-x{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font-weight:600;font-size:11px;color:#666;padding:7px 10px;border-bottom:1px solid #eee;background:#fafafa;white-space:nowrap}
+td{padding:7px 10px;border-bottom:1px solid #f5f5f5;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+.num{text-align:right;font-variant-numeric:tabular-nums}
+.total-row td{font-weight:700;background:#f5f7ff}
+
+/* ── 바 ── */
+.bar-cell{min-width:70px;padding:7px 10px}
+.bar-bg{background:#eee;border-radius:4px;height:7px;overflow:hidden}
+.bar-fill{height:7px;border-radius:4px;transition:width .4s}
+
+/* ── 뱃지 ── */
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:500}
+.badge-excellent{background:#E1F5EE;color:#0F6E56}
+.badge-good{background:#E6F1FB;color:#185FA5}
+.badge-neutral{background:#F1EFE8;color:#5F5E5A}
+.badge-bad{background:#FAEEDA;color:#BA7517}
+.badge-worst{background:#FCEBEB;color:#A32D2D}
+
+/* ── 주관식 ── */
+.comment-q-title{font-size:13px;font-weight:700;color:#1a2a4a;padding:8px 12px;background:#eef2ff;border-radius:6px;margin-bottom:8px}
+.comment-cnt{font-weight:400;color:#378ADD;margin-left:6px}
+.comment-item{border-left:3px solid #378ADD;padding:9px 13px;margin-bottom:7px;background:#f9fbfe;border-radius:0 6px 6px 0}
+.comment-item-green{border-left-color:#1D9E75;background:#f4fdf8}
+.comment-item-amber{border-left-color:#EF9F27;background:#fffbf2}
+.comment-meta{font-size:11px;color:#888;margin-bottom:3px}
+.comment-text{font-size:13px;color:#333;line-height:1.7}
+
+/* ── 문항 색상 ── */
+.item-prog{color:#185FA5}
+.item-fac{color:#0F6E56}
+
+@media(max-width:600px){
+  .cards{grid-template-columns:repeat(3,1fr)}
+  .header-title{font-size:13px}
+}
+</style>
+</head>
+<body>
+
+<!-- ── 게이트 ── -->
+<div id="gate">
+  <div id="gate-bg"></div>
+  <div id="gate-scene"></div>
+  <div class="gate-box">
+    <img class="gate-logo" id="gateLogoImg" src="" alt="경남수학문화관 로고" style="display:none">
+    <div class="gate-title">경남수학문화관</div>
+    <div class="gate-sub">운영 만족도 통합 대시보드</div>
+    <div class="gate-dots">
+      <div class="dot" id="d0"></div>
+      <div class="dot" id="d1"></div>
+      <div class="dot" id="d2"></div>
+      <div class="dot" id="d3"></div>
+    </div>
+    <div class="gate-input-wrap">
+      <input type="password" id="pwInput" maxlength="4" placeholder="••••"
+        oninput="onPwInput()" onkeydown="onPwKey(event)" autocomplete="off" inputmode="numeric">
+      <button class="eye-btn" onclick="toggleEye()" id="eyeBtn">👁</button>
+    </div>
+    <div class="gate-error" id="gateError"></div>
+    <button class="gate-btn" onclick="checkPw()">확인</button>
+  </div>
+</div>
+
+<!-- ── 앱 본체 ── -->
+<div id="app">
+  <header>
+    <div class="header-top">
+      <img class="header-logo" id="headerLogoImg" src="" alt="로고" style="display:none">
+      <span class="header-title">경남수학문화관 운영 만족도</span>
+      <div class="sel-wrap">
+        <select id="selYear"></select>
+        <select id="selMonth"></select>
+        <button class="btn-refresh" onclick="loadCurrent()">↻ 새로고침</button>
+      </div>
+      <img id="headerLogoRight" src="" alt="" style="height:32px;display:none;margin-left:8px;border-radius:4px">
+    </div>
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchTab(0)">자유관람</button>
+      <button class="tab-btn" onclick="switchTab(1)">교구대여 (수학)</button>
+      <button class="tab-btn" onclick="switchTab(2)">교구대여 (SW)</button>
+      <button class="tab-btn" onclick="switchTab(3)">학교·가족 (학교수학)</button>
+      <button class="tab-btn" onclick="switchTab(4)">학교·가족 (학교SW)</button>
+      <button class="tab-btn" onclick="switchTab(5)">학교·가족 (가족수학)</button>
+      <button class="tab-btn" onclick="switchTab(6)">학교·가족 (가족SW)</button>
+      <button class="tab-btn" onclick="switchTab(7)">캠프 (초등수학)</button>
+      <button class="tab-btn" onclick="switchTab(8)">캠프 (초등SW)</button>
+      <button class="tab-btn" onclick="switchTab(9)">캠프 (중등수학)</button>
+      <button class="tab-btn" onclick="switchTab(10)">캠프 (고등AI수학)</button>
+    </div>
+  </header>
+  <div class="wrap">
+    <div id="content"><div class="loading">⏳ 데이터를 불러오는 중...</div></div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+// 상수
+// ══════════════════════════════════════════
+const CORRECT_PW   = '3141';
+const SESSION_KEY  = 'gnmath_auth';
+const SCORE_LABEL  = {5:'매우만족',4:'만족',3:'보통',2:'불만족',1:'매우불만족'};
+const BAR_COLORS   = {5:'#1D9E75',4:'#378ADD',3:'#888780',2:'#EF9F27',1:'#E24B4A'};
+const BADGE_CLASS  = {5:'excellent',4:'good',3:'neutral',2:'bad',1:'worst'};
+
+// 탭 정의
+const TABS = [
+  { id:0, label:'자유관람' },
+  { id:1, label:'교구대여(수학교구)',  filter:'수학교구' },
+  { id:2, label:'교구대여(SW교구)',    filter:'SW교구' },
+  { id:3, label:'학교수학체험프로그램', filter:'학교수학체험프로그램' },
+  { id:4, label:'학교SW체험프로그램',  filter:'학교SW체험프로그램' },
+  { id:5, label:'가족수학체험프로그램', filter:'가족수학체험프로그램' },
+  { id:6, label:'가족SW체험프로그램',  filter:'가족SW체험프로그램' },
+  { id:7, label:'캠프 (초등수학)',     filter:'초등학생 체험수학캠프' },
+  { id:8, label:'캠프 (초등SW)',       filter:'초등학생 SW캠프' },
+  { id:9, label:'캠프 (중등수학)',     filter:'중학생 체험수학캠프' },
+  { id:10,label:'캠프 (고등AI수학)',   filter:'고등학생 인공지능수학캠프' },
+];
+
+// 캠프 문항
+const CAMP_ITEMS = [
+  {label:'1. 참여한 프로그램 내용이 흥미로웠나요?', type:'prog'},
+  {label:'2. 참여한 프로그램 내용이 도움이 되었나요?', type:'prog'},
+  {label:'3. 프로그램 참여로 수학(SW)에 대한 흥미가 생겼나요?', type:'prog'},
+  {label:'4. 기회가 된다면 또 프로그램에 참여하고 싶나요?', type:'prog'},
+  {label:'5. 강사 선생님의 설명과 진행은 이해하기 쉬웠나요?', type:'prog'},
+];
+
+// 문항 정의
+const FREE_ITEMS = [
+  {label:'프1. 프로그램 내용이 재미있고 흥미로웠나요?', type:'prog'},
+  {label:'프2. 프로그램이 이해하기 쉽게 잘 구성되었나요?', type:'prog'},
+  {label:'프3. 프로그램 참여로 수학에 대한 흥미가 생겼나요?', type:'prog'},
+  {label:'프4. 기회가 된다면 또 프로그램에 참여하고 싶나요?', type:'prog'},
+  {label:'시1. 시설(체험탐구관·화장실)이 깨끗했나요?', type:'fac'},
+  {label:'시2. 시설(체험탐구관·화장실)을 사용하는데 안전했나요?', type:'fac'},
+  {label:'시3. 조명, 실내 온도 등 시설 환경이 적절했나요?', type:'fac'},
+  {label:'시4. 시설 사용에 대한 안내 및 응대가 친절했나요?', type:'fac'},
+];
+
+const EDUC_ITEMS_STUDENT = [
+  {label:'1. 교구 활용 수업이 재미있고 흥미로웠나요?', type:'prog'},
+  {label:'2. 교구 활용 수업을 통해 수업에 더 많이 참여했나요?', type:'prog'},
+  {label:'3. 교구 활용 수업으로 수업 내용과 더 친해진 느낌이 드나요?', type:'prog'},
+  {label:'4. 다음에도 체험교구를 활용한 수업에 참여하고 싶나요?', type:'prog'},
+];
+const EDUC_ITEMS_TEACHER = [
+  {label:'1. 교구의 대여 및 반납 절차(신청 방법, 일정 안내 등)는 편리했습니까?', type:'prog'},
+  {label:'2. 교구 활용 수업을 통해 학생들의 수업 참여도가 향상되었습니까?', type:'prog'},
+  {label:'3. 대여한 교구가 교육과정과 연계하여 수업에 활용하기 적절하였습니까?', type:'prog'},
+  {label:'4. 다음에도 체험교구를 대여할 의향이 있으십니까?', type:'prog'},
+];
+
+const PROG_ITEMS = [
+  {label:'프1. 참여한 프로그램 내용이 재미있고 흥미로웠나요?', type:'prog'},
+  {label:'프2. 참여한 프로그램이 이해하기 쉽게 잘 구성되었나요?', type:'prog'},
+  {label:'프3. 프로그램 참여로 수학(SW)에 대한 흥미가 생겼나요?', type:'prog'},
+  {label:'프4. 기회가 된다면 또 프로그램에 참여하고 싶나요?', type:'prog'},
+  {label:'프5. 강사 선생님의 설명과 진행은 이해하기 쉬었나요?', type:'prog'},
+  {label:'시1. 시설(체험탐구관·화장실)이 깨끗했나요?', type:'fac'},
+  {label:'시2. 시설(체험탐구관·화장실)을 사용하는데 안전했나요?', type:'fac'},
+  {label:'시3. 조명, 실내 온도 등 시설 환경이 적절했나요?', type:'fac'},
+  {label:'시4. 시설 사용에 대한 안내 및 응대가 친절했나요?', type:'fac'},
+];
+
+// ── 자유관람 응답자 분류 ──
+const FREE_PART_ENTRIES = [
+  ['학부모 등 보호자','학부모 등 보호자'],
+  ['초등학생 학부모','학부모 등 보호자'],
+  ['중학생 학부모',  '학부모 등 보호자'],
+  ['고등학생 학부모','학부모 등 보호자'],
+  ['유아 학부모',    '학부모 등 보호자'],
+  ['초등학생',       '초등학생'],
+  ['중학생',         '중학생'],
+  ['고등학생',       '고등학생'],
+  ['교직원',         '교원'],
+  ['교사',           '교원'],
+  ['일반인',         '그외'],
+];
+const FREE_PART_CATS = ['초등학생','중학생','고등학생','교원','학부모 등 보호자','그외'];
+
+function mapFreeParticipant(v) {
+  const val = (v||'').trim();
+  for (const [k,cat] of FREE_PART_ENTRIES) { if (val.includes(k)) return cat; }
+  return '그외';
+}
+
+// ══════════════════════════════════════════
+// 상태
+// ══════════════════════════════════════════
+let currentTab = 0;
+let DATA = { free: null, educ: null, prog: null, camp: null };
+
+// ══════════════════════════════════════════
+// 게이트
+// ══════════════════════════════════════════
+function onPwInput() {
+  const val = document.getElementById('pwInput').value;
+  for (let i=0;i<4;i++) {
+    const d = document.getElementById('d'+i);
+    d.classList.toggle('filled', i<val.length);
+    d.classList.remove('error');
+  }
+  document.getElementById('gateError').textContent = '';
+  document.getElementById('pwInput').classList.remove('error');
+  if (val.length === 4) setTimeout(checkPw, 80);
+}
+function onPwKey(e) { if (e.key==='Enter') checkPw(); }
+function toggleEye() {
+  const inp = document.getElementById('pwInput');
+  const h = inp.type==='password';
+  inp.type = h?'text':'password';
+  document.getElementById('eyeBtn').textContent = h?'🙈':'👁';
+}
+function checkPw() {
+  if (document.getElementById('pwInput').value === CORRECT_PW) {
+    sessionStorage.setItem(SESSION_KEY,'1');
+    const gate = document.getElementById('gate');
+    gate.style.transition='opacity .4s';
+    gate.style.opacity='0';
+    setTimeout(()=>{ gate.style.display='none'; showApp(); }, 400);
+  } else {
+    document.getElementById('gateError').textContent='비밀번호가 올바르지 않습니다.';
+    document.getElementById('pwInput').classList.add('error');
+    for(let i=0;i<4;i++){const d=document.getElementById('d'+i);d.classList.remove('filled');d.classList.add('error');}
+    setTimeout(()=>{
+      document.getElementById('pwInput').value='';
+      document.getElementById('pwInput').classList.remove('error');
+      for(let i=0;i<4;i++){const d=document.getElementById('d'+i);d.classList.remove('filled','error');}
+    },700);
+  }
+}
+function applyImages(imgs) {
+  if (!imgs) return;
+  // 게이트 로고
+  if (imgs.logo) {
+    const gl = document.getElementById('gateLogoImg');
+    if (gl) { gl.src = imgs.logo; gl.style.display = 'block'; }
+  }
+  // 게이트 배경 전경
+  if (imgs.scene) {
+    const gs = document.getElementById('gate-scene');
+    if (gs) gs.style.backgroundImage = 'url(' + imgs.scene + ')';
+  }
+  // 헤더 로고 (왼쪽 + 오른쪽)
+  if (imgs.logo) {
+    const hl = document.getElementById('headerLogoImg');
+    if (hl) { hl.src = imgs.logo; hl.style.display = 'block'; }
+    const hr = document.getElementById('headerLogoRight');
+    if (hr) { hr.src = imgs.logo; hr.style.display = 'block'; }
+  }
+}
+
+function showApp() {
+  // 이미지 로드 (게이트가 열리는 동안 병렬로)
+  google.script.run
+    .withSuccessHandler(applyImages)
+    .withFailureHandler(()=>{})
+    .getImages();
+
+  document.getElementById('app').style.display='block';
+  loadAll();
+}
+
+// ══════════════════════════════════════════
+// 데이터 로드
+// ══════════════════════════════════════════
+function loadAll() {
+  setContent('<div class="loading">⏳ 데이터를 불러오는 중...</div>');
+  let done = 0;
+  const check = () => { if (++done===4) { populateSelects(); render(); } };
+
+  google.script.run
+    .withSuccessHandler(r=>{ DATA.free=r; check(); })
+    .withFailureHandler(e=>{ DATA.free={years:[],rows:[]}; check(); })
+    .getFreeData();
+
+  google.script.run
+    .withSuccessHandler(r=>{ DATA.educ=r; check(); })
+    .withFailureHandler(e=>{ DATA.educ={years:[],rows:[]}; check(); })
+    .getEducData();
+
+  google.script.run
+    .withSuccessHandler(r=>{ DATA.prog=r; check(); })
+    .withFailureHandler(e=>{ DATA.prog={years:[],rows:[]}; check(); })
+    .getProgramData();
+
+  google.script.run
+    .withSuccessHandler(r=>{ DATA.camp=r; check(); })
+    .withFailureHandler(e=>{ DATA.camp={years:[],rows:[]}; check(); })
+    .getCampData();
+}
+
+function loadCurrent() {
+  setContent('<div class="loading">⏳ 새로고침 중...</div>');
+  DATA = {free:null,educ:null,prog:null,camp:null};
+  loadAll();
+}
+
+// ══════════════════════════════════════════
+// 연도·월 셀렉트
+// ══════════════════════════════════════════
+function getAllYears() {
+  const s = new Set();
+  ['free','educ','prog','camp'].forEach(k=>{ if(DATA[k]) DATA[k].years.forEach(y=>s.add(y)); });
+  return [...s].sort();
+}
+function getMonthsForYear(year) {
+  const s = new Set();
+  ['free','educ','prog','camp'].forEach(k=>{
+    if(DATA[k]) DATA[k].rows.filter(r=>r.year===year).forEach(r=>s.add(r.month));
+  });
+  return [...s].sort((a,b)=>a-b);
+}
+function populateSelects() {
+  const years = getAllYears();
+  const ySel = document.getElementById('selYear');
+  const mSel = document.getElementById('selMonth');
+  const prevY = ySel.value;
+  ySel.innerHTML='';
+  years.forEach(y=>{ const o=document.createElement('option');o.value=y;o.textContent=y+'년';ySel.appendChild(o); });
+  if(prevY && years.includes(parseInt(prevY))) ySel.value=prevY;
+  else ySel.value=years[years.length-1]||'';
+  updateMonths(false);
+}
+function updateMonths(doRender=true) {
+  const year = parseInt(document.getElementById('selYear').value);
+  const mSel = document.getElementById('selMonth');
+  const months = getMonthsForYear(year);
+  mSel.innerHTML='';
+  months.forEach(m=>{ const o=document.createElement('option');o.value=m;o.textContent=m+'월';mSel.appendChild(o); });
+  if(months.length) mSel.value=months[months.length-1];
+  if(doRender) render();
+}
+
+// ══════════════════════════════════════════
+// 탭 전환
+// ══════════════════════════════════════════
+function switchTab(idx) {
+  currentTab = idx;
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',i===idx));
+  render();
+}
+
+// ══════════════════════════════════════════
+// 렌더
+// ══════════════════════════════════════════
+function render() {
+  if (!DATA.free && !DATA.educ && !DATA.prog) return;
+  const year  = parseInt(document.getElementById('selYear').value);
+  const month = parseInt(document.getElementById('selMonth').value);
+  if (!year||!month) { setContent('<div class="empty">해당 월의 응답이 없습니다.</div>'); return; }
+
+  let html='';
+  if (currentTab===0)      html = buildFree(year,month);
+  else if (currentTab<=2)  html = buildEduc(year,month,currentTab);
+  else if (currentTab<=6)  html = buildProg(year,month,currentTab);
+  else                     html = buildCamp(year,month,currentTab);
+  setContent(html);
+}
+
+function setContent(h) { document.getElementById('content').innerHTML=h; }
+
+// ══════════════════════════════════════════
+// 공통 빌더 헬퍼
+// ══════════════════════════════════════════
+function scoreDistOf(rows, scoreIdx) {
+  // scoreIdx: undefined=전체합산, number=특정문항
+  const d={5:0,4:0,3:0,2:0,1:0};
+  rows.forEach(r=>{
+    if(scoreIdx===undefined) r.scores.forEach(s=>{if(s)d[s]++;});
+    else { const s=r.scores[scoreIdx]; if(s)d[s]++; }
+  });
+  return d;
+}
+function distTotal(d){return Object.values(d).reduce((a,b)=>a+b,0);}
+
+function buildSummaryCards(total, countMap) {
+  let h=`<div class="cards"><div class="card"><div class="card-label">전체 응답수</div><div class="card-val">${total}<span>명</span></div></div>`;
+  Object.entries(countMap).forEach(([k,v])=>{
+    if(v>0) h+=`<div class="card"><div class="card-label">${k}</div><div class="card-val">${v}<span>명</span></div></div>`;
+  });
+  return h+'</div>';
+}
+
+function buildTotalDistSection(rows) {
+  const d = scoreDistOf(rows);
+  const total = distTotal(d);
+  let h=`<div class="section"><div class="section-title">전체 설문내용별 응답 분포 (전 문항 합산)</div>
+    <div class="scroll-x"><table>
+    <thead><tr><th>응답</th><th class="num">응답수</th><th class="num">비율</th><th class="bar-cell">분포</th></tr></thead><tbody>`;
+  [5,4,3,2,1].forEach(s=>{
+    const cnt=d[s], pct=total?Math.round(cnt/total*100):0;
+    h+=`<tr><td><span class="badge badge-${BADGE_CLASS[s]}">${SCORE_LABEL[s]}</span></td>
+      <td class="num">${cnt}</td><td class="num">${pct}%</td>
+      <td class="bar-cell"><div class="bar-bg"><div class="bar-fill" style="width:${pct}%;background:${BAR_COLORS[s]}"></div></div></td></tr>`;
+  });
+  h+=`<tr class="total-row"><td>합계</td><td class="num">${total}</td><td class="num">100%</td><td></td></tr>`;
+  return h+'</tbody></table></div></div>';
+}
+
+function buildPartDistSection(title, rows, catMap) {
+  // catMap: {카테고리명: [해당rows]}
+  const allDist = scoreDistOf(rows);
+  const allTotal = distTotal(allDist);
+  let h=`<div class="section"><div class="section-title">${title}</div>
+    <div class="scroll-x"><table>
+    <thead><tr><th>대상</th><th class="num">응답수</th>`;
+  [5,4,3,2,1].forEach(s=>h+=`<th class="num">${SCORE_LABEL[s]}</th>`);
+  h+=`<th class="num">점수합계</th></tr></thead><tbody>`;
+  Object.entries(catMap).forEach(([cat,catRows])=>{
+    if(!catRows.length) return;
+    const d=scoreDistOf(catRows), t=distTotal(d);
+    h+=`<tr><td>${cat}</td><td class="num">${catRows.length}</td>`;
+    [5,4,3,2,1].forEach(s=>h+=`<td class="num">${d[s]}</td>`);
+    h+=`<td class="num"><strong>${t}</strong></td></tr>`;
+  });
+  h+=`<tr class="total-row"><td>전체</td><td class="num">${rows.length}</td>`;
+  [5,4,3,2,1].forEach(s=>h+=`<td class="num">${allDist[s]}</td>`);
+  h+=`<td class="num"><strong>${allTotal}</strong></td></tr>`;
+  return h+'</tbody></table></div></div>';
+}
+
+function buildItemSection(rows, items, filterCats) {
+  // filterCats: {label: rows} 드롭다운용
+  window._itemRows2 = filterCats;
+  window._itemDefs2 = items;
+
+  function makeTable(targetRows) {
+    let t=`<div class="scroll-x"><table>
+      <thead><tr><th style="min-width:230px">문항</th>
+      <th class="num">매우만족</th><th class="num">만족</th><th class="num">보통</th>
+      <th class="num">불만족</th><th class="num">매우불만족</th><th class="num">응답수</th>
+      </tr></thead><tbody>`;
+    let gd={5:0,4:0,3:0,2:0,1:0},gTotal=0;
+    items.forEach((item,i)=>{
+      const d=scoreDistOf(targetRows,i), cnt=distTotal(d);
+      [5,4,3,2,1].forEach(s=>{gd[s]+=d[s];gTotal+=d[s];});
+      t+=`<tr><td class="item-${item.type}" style="font-size:12px">${item.label}</td>
+        <td class="num">${d[5]}</td><td class="num">${d[4]}</td><td class="num">${d[3]}</td>
+        <td class="num">${d[2]}</td><td class="num">${d[1]}</td>
+        <td class="num"><strong>${cnt}</strong></td></tr>`;
+    });
+    t+=`<tr class="total-row"><td><strong>합계</strong></td>
+      <td class="num">${gd[5]}</td><td class="num">${gd[4]}</td><td class="num">${gd[3]}</td>
+      <td class="num">${gd[2]}</td><td class="num">${gd[1]}</td>
+      <td class="num"><strong>${gTotal}</strong></td></tr>`;
+    return t+'</tbody></table></div>';
+  }
+  window._buildItemTable2 = makeTable;
+
+  let h=`<div class="section"><div class="section-title"><span>문항별 응답 분포</span>
+    <select onchange="onItemFilter2(this.value)">`;
+  Object.keys(filterCats).forEach(k=>h+=`<option value="${k}">${k}</option>`);
+  h+=`</select></div><div id="itemTable2">${makeTable(rows)}</div></div>`;
+  return h;
+}
+
+function onItemFilter2(val) {
+  const rows = (window._itemRows2||{})[val]||[];
+  const el = document.getElementById('itemTable2');
+  if(el && window._buildItemTable2) el.innerHTML = window._buildItemTable2(rows);
+}
+
+function buildComments(commentDefs) {
+  // commentDefs: [{label, rows, color}]
+  const hasAny = commentDefs.some(c=>c.rows.length>0);
+  if(!hasAny) return '';
+  let h=`<div class="section"><div class="section-title">주관식 응답</div>`;
+  commentDefs.forEach(({label,rows,color})=>{
+    if(!rows.length) return;
+    h+=`<div class="comment-q-title">${label} <span class="comment-cnt">${rows.length}건</span></div>`;
+    rows.forEach(r=>{
+      h+=`<div class="comment-item comment-item-${color||'blue'}">
+        <div class="comment-meta">${r.year}.${r.month}.${r.day} · ${r.respondent||r.participant||''}</div>
+        <div class="comment-text">${escHtml(r._comment)}</div>
+      </div>`;
+    });
+  });
+  return h+'</div>';
+}
+
+function validComment(s){return s&&s.length>1&&s!=='.'&&s!=='..';}
+function escHtml(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+// ══════════════════════════════════════════
+// [탭0] 자유관람
+// ══════════════════════════════════════════
+function buildFree(year,month) {
+  if(!DATA.free) return '<div class="empty">데이터 로드 중...</div>';
+  const rows = DATA.free.rows
+    .filter(r=>r.year===year&&r.month===month)
+    .map(r=>({...r, participant: mapFreeParticipant(r.participant)}));
+  if(!rows.length) return '<div class="empty">해당 월의 응답이 없습니다.</div>';
+
+  const catMap={};
+  FREE_PART_CATS.forEach(c=>catMap[c]=rows.filter(r=>r.participant===c));
+  const countMap={};
+  FREE_PART_CATS.forEach(c=>{countMap[c]=catMap[c].length;});
+
+  const filterCats={'전체':rows};
+  FREE_PART_CATS.forEach(c=>{if(catMap[c].length) filterCats[c]=catMap[c];});
+
+  const c1rows = rows.filter(r=>validComment(r.comment1)).map(r=>({...r,_comment:r.comment1}));
+  const c2rows = rows.filter(r=>validComment(r.comment2)).map(r=>({...r,_comment:r.comment2}));
+
+  return buildSummaryCards(rows.length, countMap)
+    + buildTotalDistSection(rows)
+    + buildPartDistSection('대상별 만족도 분포 (전 문항 합산)', rows, catMap)
+    + buildItemSection(rows, FREE_ITEMS, filterCats)
+    + buildComments([
+        {label:'주1. 참여한 프로그램에서 가장 기억에 남는 활동은 무엇인가요?', rows:c1rows, color:'blue'},
+        {label:'주2. 시설을 이용하면서 느낀 점이나 개선사항을 자유롭게 적어 주세요.', rows:c2rows, color:'green'},
+      ]);
+}
+
+// ══════════════════════════════════════════
+// [탭1·2] 교구대여
+// ══════════════════════════════════════════
+function buildEduc(year,month,tabIdx) {
+  if(!DATA.educ) return '<div class="empty">데이터 로드 중...</div>';
+  const filterVal = TABS[tabIdx].filter;
+  const rows = DATA.educ.rows.filter(r=>r.year===year&&r.month===month&&r.toolType===filterVal);
+  if(!rows.length) return '<div class="empty">해당 월의 응답이 없습니다.</div>';
+
+  // ── 학교급 × 설문자 조합 정의
+  const SCHOOL_LEVELS = ['초등학교','중학교','고등학교'];
+  const RESP_TYPES    = ['학생','교원'];
+  const combos = [];
+  SCHOOL_LEVELS.forEach(sl => RESP_TYPES.forEach(rt => combos.push(`${sl} · ${rt}`)));
+
+  // 각 조합별 rows
+  const comboMap = {};
+  combos.forEach(key => {
+    const [sl, rt] = key.split(' · ');
+    comboMap[key] = rows.filter(r => r.schoolLevel===sl && r.respondent===rt);
+  });
+
+  // 요약 카드 — 조합별 응답수 (0이면 제외)
+  const countMap = {};
+  combos.forEach(k => { if(comboMap[k].length) countMap[k] = comboMap[k].length; });
+
+  // 문항별 드롭다운 — 전체/학생/교원 + 조합별
+  const students = rows.filter(r=>r.respondent==='학생');
+  const teachers = rows.filter(r=>r.respondent==='교원');
+  window._educItems = {'전체 (학생+교원)': EDUC_ITEMS_STUDENT, '학생': EDUC_ITEMS_STUDENT, '교원': EDUC_ITEMS_TEACHER};
+  window._educRows  = {'전체 (학생+교원)': rows, '학생': students, '교원': teachers};
+  combos.forEach(k => {
+    if(comboMap[k].length) {
+      const [,rt] = k.split(' · ');
+      window._educRows[k]  = comboMap[k];
+      window._educItems[k] = rt==='교원' ? EDUC_ITEMS_TEACHER : EDUC_ITEMS_STUDENT;
+    }
+  });
+
+  function makeEducTable(targetRows, items) {
+    let t=`<div class="scroll-x"><table>
+      <thead><tr><th style="min-width:320px">문항</th>
+      <th class="num">매우만족</th><th class="num">만족</th><th class="num">보통</th>
+      <th class="num">불만족</th><th class="num">매우불만족</th><th class="num">응답수</th>
+      </tr></thead><tbody>`;
+    let gd={5:0,4:0,3:0,2:0,1:0},gTotal=0;
+    items.forEach((item,i)=>{
+      const d=scoreDistOf(targetRows,i),cnt=distTotal(d);
+      [5,4,3,2,1].forEach(s=>{gd[s]+=d[s];gTotal+=d[s];});
+      t+=`<tr><td class="item-prog" style="font-size:12px">${item.label}</td>
+        <td class="num">${d[5]}</td><td class="num">${d[4]}</td><td class="num">${d[3]}</td>
+        <td class="num">${d[2]}</td><td class="num">${d[1]}</td>
+        <td class="num"><strong>${cnt}</strong></td></tr>`;
+    });
+    t+=`<tr class="total-row"><td><strong>합계</strong></td>
+      <td class="num">${gd[5]}</td><td class="num">${gd[4]}</td><td class="num">${gd[3]}</td>
+      <td class="num">${gd[2]}</td><td class="num">${gd[1]}</td>
+      <td class="num"><strong>${gTotal}</strong></td></tr>`;
+    return t+'</tbody></table></div>';
+  }
+  window._makeEducTable = makeEducTable;
+
+  // 문항별 드롭다운 옵션 생성
+  let filterOpts = `<option value="전체 (학생+교원)">전체 (학생+교원)</option>
+    <option value="학생">학생 전체</option>
+    <option value="교원">교원 전체</option>`;
+  combos.forEach(k => {
+    if(comboMap[k].length) filterOpts += `<option value="${k}">${k}</option>`;
+  });
+
+  const itemSectionHtml = `<div class="section">
+    <div class="section-title"><span>문항별 응답 분포</span>
+      <select onchange="onEducFilter(this.value)">${filterOpts}</select>
+    </div>
+    <div id="educItemTable">${makeEducTable(rows, EDUC_ITEMS_STUDENT)}</div>
+  </div>`;
+
+  // 응답자별 분포 — 학교급×설문자 조합
+  const allDist = scoreDistOf(rows);
+  const allTotal = distTotal(allDist);
+  let distHtml = `<div class="section"><div class="section-title">응답자별 만족도 분포 (학교급 × 설문자, 전 문항 합산)</div>
+    <div class="scroll-x"><table>
+    <thead><tr><th>대상</th><th class="num">응답수</th>`;
+  [5,4,3,2,1].forEach(s=>distHtml+=`<th class="num">${SCORE_LABEL[s]}</th>`);
+  distHtml+=`<th class="num">점수합계</th></tr></thead><tbody>`;
+  combos.forEach(key=>{
+    const cr = comboMap[key];
+    if(!cr.length) return;
+    const d=scoreDistOf(cr), t=distTotal(d);
+    distHtml+=`<tr><td>${key}</td><td class="num">${cr.length}</td>`;
+    [5,4,3,2,1].forEach(s=>distHtml+=`<td class="num">${d[s]}</td>`);
+    distHtml+=`<td class="num"><strong>${t}</strong></td></tr>`;
+  });
+  distHtml+=`<tr class="total-row"><td>전체</td><td class="num">${rows.length}</td>`;
+  [5,4,3,2,1].forEach(s=>distHtml+=`<td class="num">${allDist[s]}</td>`);
+  distHtml+=`<td class="num"><strong>${allTotal}</strong></td></tr>`;
+  distHtml+='</tbody></table></div></div>';
+
+  const cRows = rows.filter(r=>validComment(r.comment1)).map(r=>({...r,_comment:r.comment1}));
+
+  return buildSummaryCards(rows.length, countMap)
+    + buildTotalDistSection(rows)
+    + distHtml
+    + itemSectionHtml
+    + buildComments([
+        {label:'주관식. 체험교구 활용 관련 자유의견', rows:cRows, color:'blue'},
+      ]);
+}
+
+function onEducFilter(val) {
+  const rows  = (window._educRows||{})[val]||[];
+  const items = (window._educItems||{})[val]||EDUC_ITEMS_STUDENT;
+  const el = document.getElementById('educItemTable');
+  if(el && window._makeEducTable) el.innerHTML = window._makeEducTable(rows, items);
+}
+
+// ══════════════════════════════════════════
+// [탭3~6] 학교·가족 프로그램
+// ══════════════════════════════════════════
+
+// C열 응답자 값 정규화 — 다양한 표기를 통일
+function mapProgRespondent(v) {
+  const s = (v||'').trim();
+  // 학부모·보호자 계열
+  if (s.includes('학부모') || s.includes('보호자')) return '학부모 등 보호자';
+  // 학생 계열 (초등학생, 중학생, 고등학생, 학생 모두)
+  if (s.includes('학생')) return '학생';
+  // 교원 계열
+  if (s.includes('교원') || s.includes('교사') || s.includes('교직원')) return '교원';
+  if (s === '') return null; // 빈값 제외
+  return '그외';
+}
+
+function buildProg(year,month,tabIdx) {
+  if(!DATA.prog) return '<div class="empty">데이터 로드 중...</div>';
+  const filterVal = TABS[tabIdx].filter;
+  const rows = DATA.prog.rows
+    .filter(r=>r.year===year&&r.month===month&&r.programType===filterVal)
+    .map(r=>({...r, respondent: mapProgRespondent(r.respondent)}))
+    .filter(r=>r.respondent!==null);
+  if(!rows.length) return '<div class="empty">해당 월의 응답이 없습니다.</div>';
+
+  const isSchool = tabIdx<=4;
+  const respCats = isSchool
+    ? ['학생','교원','학부모 등 보호자','그외']
+    : ['학생','학부모 등 보호자','그외'];
+
+  const catMap={};
+  respCats.forEach(c=>catMap[c]=rows.filter(r=>r.respondent===c));
+  const countMap={};
+  respCats.forEach(c=>{ if(catMap[c].length) countMap[c]=catMap[c].length; });
+
+  const filterCats={'전체':rows};
+  respCats.forEach(c=>{if(catMap[c].length) filterCats[c]=catMap[c];});
+
+  const c1rows = rows.filter(r=>validComment(r.comment1)).map(r=>({...r,_comment:r.comment1}));
+  const c2rows = rows.filter(r=>validComment(r.comment2)).map(r=>({...r,_comment:r.comment2}));
+  const c3rows = rows.filter(r=>validComment(r.comment3)).map(r=>({...r,_comment:r.comment3}));
+
+  return buildSummaryCards(rows.length, countMap)
+    + buildTotalDistSection(rows)
+    + buildPartDistSection('응답자별 만족도 분포 (전 문항 합산)', rows, catMap)
+    + buildItemSection(rows, PROG_ITEMS, filterCats)
+    + buildComments([
+        {label:'주1. 참여한 프로그램에서 가장 기억에 남는 활동은 무엇인가요?', rows:c1rows, color:'blue'},
+        {label:'주2. 강사의 설명이나 진행에 대해 좋았던 점이나 바라는 점을 간단히 적어 주세요.', rows:c2rows, color:'green'},
+        {label:'주3. 시설을 이용하면서 느낀 점이나 개선사항을 자유롭게 적어 주세요.', rows:c3rows, color:'amber'},
+      ]);
+}
+
+// ══════════════════════════════════════════
+// [탭7~10] 여름방학 캠프
+// ══════════════════════════════════════════
+function buildCamp(year, month, tabIdx) {
+  if (!DATA.camp) return '<div class="empty">데이터 로드 중...</div>';
+  const filterVal = TABS[tabIdx].filter;
+  const rows = DATA.camp.rows.filter(r => r.year===year && r.month===month && r.campType===filterVal);
+  if (!rows.length) return '<div class="empty">해당 월의 응답이 없습니다.</div>';
+
+  // 캠프는 별도 응답자 구분 없이 전체 통계
+  const filterCats = { '전체': rows };
+
+  const c1rows = rows.filter(r => validComment(r.comment1)).map(r => ({...r, _comment: r.comment1}));
+  const c2rows = rows.filter(r => validComment(r.comment2)).map(r => ({...r, _comment: r.comment2}));
+
+  return buildSummaryCards(rows.length, {})
+    + buildTotalDistSection(rows)
+    + buildItemSection(rows, CAMP_ITEMS, filterCats)
+    + buildComments([
+        {label:'주1. 참여한 프로그램에서 가장 기억에 남는 활동은 무엇인가요?', rows: c1rows, color:'blue'},
+        {label:'주2. 강사의 설명이나 진행에 대해 좋았던 점이나 바라는 점을 간단히 적어 주세요.', rows: c2rows, color:'green'},
+      ]);
+}
+
+// ══════════════════════════════════════════
+// 이벤트 바인딩 & 초기화
+// ══════════════════════════════════════════
+document.getElementById('selYear').addEventListener('change', ()=>updateMonths(true));
+document.getElementById('selMonth').addEventListener('change', render);
+
+(function init(){
+  // 게이트 이미지는 항상 미리 로드 (게이트가 보이는 동안 표시)
+  google.script.run
+    .withSuccessHandler(applyImages)
+    .withFailureHandler(()=>{})
+    .getImages();
+
+  if(sessionStorage.getItem(SESSION_KEY)==='1'){
+    document.getElementById('gate').style.display='none';
+    showApp();
+  }
+})();
+</script>
+</body>
+</html>

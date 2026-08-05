@@ -1,0 +1,21 @@
+# clasp 인증 정보 — 절대 커밋 금지
+.clasprc.json
+.clasp.json
+
+# 이미지 base64 파일 (용량이 크고 민감할 수 있음)
+# 필요에 따라 주석 해제
+# src/logo.html
+# src/scene.html
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 에디터
+.vscode/
+.idea/
+*.swp
+
+# 로그
+*.log
+node_modules/
