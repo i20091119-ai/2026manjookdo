@@ -77,8 +77,9 @@ clasp open        # 편집기 열기
 Apps Script 없이 node만으로 계산 로직을 검증한다. **배포 전에 돌려 보는 것을 권장.**
 
 ```bash
-node test/score.test.js
-node test/report.test.js
+node test/score.test.js    # 만족도 응답 표현 인식
+node test/report.test.js   # 월말 집계 4개 표
+node test/auth.test.js     # 비밀번호·토큰 + 외부 노출 함수 목록
 ```
 
 `report.test.js`는 `src/index.html`에서 스크립트를 떼어내 실행하므로,
@@ -98,8 +99,21 @@ node test/report.test.js
    시트별 행 수, B열 실제 값, 점수 인식 실패 행이 실행 로그에 나온다.
 2. `docs/유지보수_가이드.md` 의 트러블슈팅 절을 본다. 증상별로 정리되어 있다.
 
-## 알려진 제약
+## 비밀번호
 
-웹앱이 `ANYONE_ANONYMOUS`로 배포되어 있어 **비밀번호 게이트는 실질적인 접근 통제가 아니다.**
-URL을 아는 사람은 브라우저 콘솔에서 서버 함수를 직접 호출해 주관식 응답까지 받을 수 있다.
-자세한 내용과 대응 방법은 `CLAUDE.md`의 '비밀번호' 절 참고.
+비밀번호 검증은 **서버(`Code.gs`)에서** 한다. 클라이언트 소스에는 비밀번호가 없다.
+
+```
+checkPassword(pw)  →  맞으면 토큰 발급 (6시간)
+getAllData(token)  →  토큰이 있어야 데이터를 준다
+```
+
+설문 데이터를 읽는 함수는 이름 끝에 `_`를 붙여 `google.script.run`에서 아예 부를 수 없게 막았다.
+따라서 URL만 알고 비밀번호를 모르면 응답 데이터를 받을 수 없다.
+
+기본 비밀번호는 `Code.gs`의 `DEFAULT_PW`(현재 `3141`)다.
+**소스에 비밀번호를 남기고 싶지 않다면** 편집기 → 프로젝트 설정 → 스크립트 속성에
+`DASHBOARD_PW`를 추가하면 그 값이 우선한다.
+
+> 웹앱 자체는 여전히 `ANYONE_ANONYMOUS`로 배포되어 있어 로그인 화면까지는 누구나 열린다.
+> 기관 계정으로만 열려면 `appsscript.json`의 `access`를 `DOMAIN`으로 바꾸면 된다.

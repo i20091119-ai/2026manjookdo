@@ -180,6 +180,7 @@ table.rep td.v{color:#1a3a6e;font-variant-numeric:tabular-nums}
         <select id="selYear"></select>
         <select id="selMonth"></select>
         <button class="btn-refresh" onclick="loadCurrent()">↻ 새로고침</button>
+        <button class="btn-refresh" onclick="logout()">잠금</button>
       </div>
       <img id="headerLogoRight" src="" alt="" style="height:32px;display:none;margin-left:8px;border-radius:4px">
     </div>
@@ -194,8 +195,9 @@ table.rep td.v{color:#1a3a6e;font-variant-numeric:tabular-nums}
 // ══════════════════════════════════════════
 // 상수
 // ══════════════════════════════════════════
-const CORRECT_PW   = '3141';
-const SESSION_KEY  = 'gnmath_auth';
+// 비밀번호는 서버(Code.gs)에만 있다. 여기에는 두지 않는다.
+// checkPassword()가 발급한 토큰만 세션에 보관한다.
+const SESSION_KEY  = 'gnmath_token';
 const SCORE_LABEL  = {5:'매우만족',4:'만족',3:'보통',2:'불만족',1:'매우불만족'};
 const BAR_COLORS   = {5:'#1D9E75',4:'#378ADD',3:'#888780',2:'#EF9F27',1:'#E24B4A'};
 const BADGE_CLASS  = {5:'excellent',4:'good',3:'neutral',2:'bad',1:'worst'};
@@ -311,9 +313,11 @@ function mapProgRespondent(v) {
 let currentTab = 0;
 let DATA = { free:null, educ:null, prog:null, camp:null };
 const SRC_KEYS = ['free','educ','prog','camp'];
+let AUTH_TOKEN = null;   // 서버가 발급한 토큰. 비밀번호는 여기 없다.
+let pwBusy = false;      // 검증 요청이 나가 있는 동안 중복 제출 방지
 
 // ══════════════════════════════════════════
-// 게이트
+// 게이트 — 비밀번호 대조는 서버(checkPassword)가 한다
 // ══════════════════════════════════════════
 function onPwInput() {
   const val = document.getElementById('pwInput').value;
@@ -333,22 +337,75 @@ function toggleEye() {
   inp.type = h?'text':'password';
   document.getElementById('eyeBtn').textContent = h?'🙈':'👁';
 }
+
+function setGateBusy(on) {
+  const btn = document.querySelector('.gate-btn');
+  const inp = document.getElementById('pwInput');
+  if (btn) { btn.disabled = on; btn.textContent = on ? '확인 중…' : '확인'; }
+  if (inp) inp.disabled = on;
+}
+
+function gateFail(msg) {
+  document.getElementById('gateError').textContent = msg || '비밀번호가 올바르지 않습니다.';
+  document.getElementById('pwInput').classList.add('error');
+  for(let i=0;i<4;i++){const d=document.getElementById('d'+i);d.classList.remove('filled');d.classList.add('error');}
+  setTimeout(()=>{
+    const inp = document.getElementById('pwInput');
+    inp.value=''; inp.classList.remove('error');
+    for(let i=0;i<4;i++){const d=document.getElementById('d'+i);d.classList.remove('filled','error');}
+    inp.focus();
+  },700);
+}
+
 function checkPw() {
-  if (document.getElementById('pwInput').value === CORRECT_PW) {
-    sessionStorage.setItem(SESSION_KEY,'1');
-    const gate = document.getElementById('gate');
-    gate.style.transition='opacity .4s';
-    gate.style.opacity='0';
-    setTimeout(()=>{ gate.style.display='none'; showApp(); }, 400);
-  } else {
-    document.getElementById('gateError').textContent='비밀번호가 올바르지 않습니다.';
-    document.getElementById('pwInput').classList.add('error');
-    for(let i=0;i<4;i++){const d=document.getElementById('d'+i);d.classList.remove('filled');d.classList.add('error');}
-    setTimeout(()=>{
-      document.getElementById('pwInput').value='';
-      document.getElementById('pwInput').classList.remove('error');
-      for(let i=0;i<4;i++){const d=document.getElementById('d'+i);d.classList.remove('filled','error');}
-    },700);
+  if (pwBusy) return;
+  const val = document.getElementById('pwInput').value;
+  if (val.length < 4) { document.getElementById('gateError').textContent='4자리를 모두 입력하세요.'; return; }
+
+  pwBusy = true;
+  setGateBusy(true);
+  google.script.run
+    .withSuccessHandler(res=>{
+      pwBusy = false; setGateBusy(false);
+      if (res && res.ok && res.token) openApp(res.token);
+      else gateFail();
+    })
+    .withFailureHandler(e=>{
+      pwBusy = false; setGateBusy(false);
+      gateFail('서버에 연결하지 못했습니다. 잠시 후 다시 시도하세요.');
+      console.error(e);
+    })
+    .checkPassword(val);
+}
+
+function openApp(token) {
+  AUTH_TOKEN = token;
+  sessionStorage.setItem(SESSION_KEY, token);
+  const gate = document.getElementById('gate');
+  gate.style.transition='opacity .4s';
+  gate.style.opacity='0';
+  setTimeout(()=>{ gate.style.display='none'; showApp(); }, 400);
+}
+
+// 토큰이 만료·무효일 때 게이트로 되돌린다
+function lockOut(msg) {
+  AUTH_TOKEN = null;
+  sessionStorage.removeItem(SESSION_KEY);
+  DATA = {free:null,educ:null,prog:null,camp:null};
+  document.getElementById('app').style.display='none';
+  const gate = document.getElementById('gate');
+  gate.style.display='flex';
+  gate.style.opacity='1';
+  const inp = document.getElementById('pwInput');
+  inp.value=''; inp.disabled=false;
+  for(let i=0;i<4;i++){document.getElementById('d'+i).classList.remove('filled','error');}
+  setGateBusy(false);
+  document.getElementById('gateError').textContent = msg || '';
+  inp.focus();
+  // 세션 복원 직후 거부된 경우엔 게이트 이미지가 아직 없다
+  const gl = document.getElementById('gateLogoImg');
+  if (gl && !gl.src) {
+    google.script.run.withSuccessHandler(applyImages).withFailureHandler(()=>{}).getImages();
   }
 }
 function applyImages(imgs) {
@@ -373,9 +430,10 @@ function showApp() {
 }
 
 // ══════════════════════════════════════════
-// 데이터 로드 — getAllData() 한 번으로 전부 받는다
+// 데이터 로드 — getAllData(토큰) 한 번으로 전부 받는다
 // ══════════════════════════════════════════
 function loadAll() {
+  if (!AUTH_TOKEN) { lockOut(); return; }
   setContent('<div class="loading">⏳ 데이터를 불러오는 중...</div>');
   google.script.run
     .withSuccessHandler(res=>{
@@ -390,14 +448,26 @@ function loadAll() {
     })
     .withFailureHandler(e=>{
       const msg = e && e.message ? e.message : String(e);
+      // 토큰 만료(6시간) 또는 서버 재시작 → 다시 비밀번호를 받는다
+      if (msg.indexOf('AUTH_REQUIRED') !== -1) {
+        lockOut('세션이 만료되었습니다. 비밀번호를 다시 입력해 주세요.');
+        return;
+      }
       setContent('<div class="empty">데이터를 불러오지 못했습니다.<br><br><code>'+escHtml(msg)+'</code></div>');
     })
-    .getAllData();
+    .getAllData(AUTH_TOKEN);
 }
 
 function loadCurrent() {
   DATA = {free:null,educ:null,prog:null,camp:null};
   loadAll();
+}
+
+// 서버에서 토큰을 지우고 게이트로 돌아간다
+function logout() {
+  const t = AUTH_TOKEN;
+  lockOut();
+  if (t) google.script.run.withFailureHandler(()=>{}).revokeToken(t);
 }
 
 // ══════════════════════════════════════════
@@ -1195,12 +1265,18 @@ document.getElementById('selMonth').addEventListener('change', render);
 
 (function init(){
   buildTabBar();
-  if(sessionStorage.getItem(SESSION_KEY)==='1'){
+  const saved = sessionStorage.getItem(SESSION_KEY);
+  if (saved) {
+    // 토큰이 아직 유효한지는 서버만 안다.
+    // 일단 열고, getAllData가 거부하면 loadAll()이 게이트로 되돌린다.
+    AUTH_TOKEN = saved;
     document.getElementById('gate').style.display='none';
     showApp();
   } else {
-    // 게이트가 떠 있는 동안 로고·전경만 먼저 받아 둔다
+    // 게이트가 떠 있는 동안 로고·전경만 먼저 받아 둔다 (설문 데이터는 인증 후)
     google.script.run.withSuccessHandler(applyImages).withFailureHandler(()=>{}).getImages();
+    const inp = document.getElementById('pwInput');
+    if (inp) inp.focus();
   }
 })();
 </script>

@@ -12,7 +12,7 @@ src/appsscript.json  매니페스트 (시간대·OAuth 스코프·웹앱 접근 
 test/                node로 돌리는 순수 로직 테스트 (Apps Script 없이 실행됨)
 ```
 
-클라이언트는 `getAllData()` **한 번**만 호출한다.
+클라이언트는 `checkPassword(pw)`로 토큰을 받고, `getAllData(token)`을 **한 번**만 호출한다.
 서버가 4개 시트 + 이미지를 한 응답에 담아 보내고, 하나가 실패해도 나머지는 살려서 보낸다.
 필터링·집계는 전부 클라이언트에서 한다.
 
@@ -127,40 +127,68 @@ clasp 사용 시 `clasp push` 후 위 절차로 버전만 올리면 된다.
 **시트에서 온 문자열은 반드시 `escHtml()`을 거쳐 넣는다.**
 주관식 본문뿐 아니라 응답자·프로그램명 같은 메타 값도 마찬가지다.
 
+## 인증 (서버 검증)
+
+`appsscript.json`이 `ANYONE_ANONYMOUS`라 URL을 아는 사람은 `google.script.run`으로
+서버 함수를 직접 부를 수 있다. 그래서 두 겹으로 막는다.
+
+**1. 데이터를 읽는 함수는 전부 이름 끝에 `_`를 붙였다.**
+Apps Script는 `_`로 끝나는 함수를 `google.script.run`에서 호출하지 못하게 한다.
+`getFreeData_` / `getEducData_` / `getProgramData_` / `getCampData_` / `collectAll_` / `getSheet_`.
+⚠ **`_`를 떼면 그 함수가 외부에 그대로 열린다.**
+
+**2. 바깥에 열린 `getAllData(token)`은 토큰을 검사한다.**
+
+```
+checkPassword(pw) → {ok:true, token}   토큰을 CacheService에 6시간 저장
+getAllData(token) → requireAuth_(token) 통과해야 데이터 반환, 아니면 'AUTH_REQUIRED'
+revokeToken(token)                      로그아웃(잠금 버튼)
+```
+
+비밀번호는 `Code.gs`의 `DEFAULT_PW`(기본 `3141`)에 있고, **클라이언트로 내려가지 않는다.**
+스크립트 속성 `DASHBOARD_PW`를 설정하면 그 값이 우선한다 —
+소스 코드에 비밀번호를 남기고 싶지 않을 때 쓴다.
+
+무차별 대입 대비로 실패 시 `Utilities.sleep(1초)`, 10분 내 10회 이상 실패하면 5초로 늘린다.
+
+외부에 열려 있어도 되는 함수는 이것뿐이다:
+`doGet` / `checkPassword` / `revokeToken` / `getAllData` / `diagnose` / `getImages` +
+순수 계산 헬퍼(`parseTs`, `scoreToNum`, `toScores`, `cell`, `yearKeys`).
+`getImages`는 게이트 로고·전경용이라 인증 전에도 불러야 해서 열어 뒀다(브랜딩 이미지뿐).
+`diagnose`는 편집기 실행이 아니면(`isOwner_()`) 토큰을 요구한다.
+
+`test/auth.test.js`가 이 목록을 검사하므로, 새 함수를 공개로 추가하면 테스트가 깨진다.
+
+클라이언트는 토큰만 `sessionStorage`에 들고 있고, 만료되면 `lockOut()`으로 게이트에 돌아간다.
+비밀번호 자릿수를 바꾸면 `maxlength`와 점 표시 DOM(`d0`~`d3`)도 함께 고쳐야 한다.
+
 ## 테스트
 
-Apps Script 없이 node로 순수 로직만 돌린다. 배포 전에 두 개 다 통과시킨다.
+Apps Script 없이 node로 순수 로직만 돌린다. 배포 전에 세 개 다 통과시킨다.
 
 ```bash
 node test/score.test.js    # scoreToNum() — 4세대 표현 인식
 node test/report.test.js   # 월말 집계 4개 표 — 2026.8 실제 수치 기준
+node test/auth.test.js     # 비밀번호·토큰 + 외부 노출 함수 목록
 ```
 
 `report.test.js`는 `index.html`에서 `<script>`를 떼어내 DOM 스텁 위에서 실행한다.
-`buildReport()`가 만드는 TSV 데이터를 검사하므로 표 계산이 틀리면 바로 잡힌다.
+`auth.test.js`는 `CacheService` 등을 가짜로 끼워 넣고 `Code.js`를 통째로 실행한다.
 
 ## 디버깅
 
 **서버 쪽** — Apps Script 편집기에서 `diagnose()`를 실행하면
 시트별 행 수, B열 고유값, 점수가 전부 null인 행 수가 실행 로그에 찍힌다.
+(편집기 실행은 토큰 없이 통과한다)
 
-**클라이언트 쪽** — 브라우저 콘솔:
+**클라이언트 쪽** — 로그인한 탭의 브라우저 콘솔:
 ```javascript
-google.script.run.withSuccessHandler(r => console.log(r.camp.rows.slice(0,3))).getAllData()
+google.script.run
+  .withSuccessHandler(r => console.log(r.camp.rows.slice(0,3)))
+  .getAllData(sessionStorage.getItem('gnmath_token'))
 ```
 `scores`가 전부 `null`이면 `scoreToNum()`이 표현을 인식하지 못한 것이고,
 값이 엉뚱한 위치에 있으면 컬럼 인덱스가 틀린 것이다.
 
 탭에 "해당 월의 응답이 없습니다"만 뜨면 화면이 그 달 시트의 실제 B열 값들을 같이 보여준다.
 `TABS`의 `filter` 문자열과 대조하면 된다.
-
-## 비밀번호
-
-`index.html`의 `CORRECT_PW` (4자리). 자릿수를 바꾸면 `maxlength`와
-점 표시 DOM(`d0`~`d3`)도 함께 고쳐야 한다.
-
-⚠ **이건 보안이 아니다.** `appsscript.json`이 `ANYONE_ANONYMOUS`라
-URL만 알면 브라우저 콘솔에서 `google.script.run.getAllData()`를 직접 호출해
-주관식 응답 원문까지 전부 받을 수 있다. 비밀번호는 클라이언트 소스에 그대로 들어 있다.
-실제로 접근을 막아야 하면 `access`를 `DOMAIN`으로 바꾸거나
-비밀번호 검증을 서버(`Code.gs`)로 옮겨야 한다.

@@ -8,10 +8,10 @@ const code = src.match(/<script>([\s\S]*)<\/script>/)[1];
 // ── 최소 DOM 스텁 ──
 const el = () => ({
   style:{}, classList:{add(){},remove(){},toggle(){}}, innerHTML:'', textContent:'',
-  value:'', addEventListener(){}, appendChild(){}, onclick:null,
+  value:'', src:'', disabled:false, addEventListener(){}, appendChild(){}, focus(){}, onclick:null,
 });
 const document = {
-  getElementById: el, querySelectorAll: () => [], createElement: el,
+  getElementById: el, querySelector: el, querySelectorAll: () => [], createElement: el,
   body:{appendChild(){},removeChild(){}}, execCommand(){},
 };
 const sessionStorage = { getItem: () => null, setItem(){} };
