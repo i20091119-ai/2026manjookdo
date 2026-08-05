@@ -11,7 +11,7 @@ body{font-family:'Apple SD Gothic Neo','Noto Sans KR',sans-serif;font-size:14px;
 /* ── 헤더 ── */
 header{background:#1a3a6e;padding:0 20px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.25)}
 .header-top{display:flex;align-items:center;gap:12px;padding:10px 0 6px}
-.header-logo{height:36px}
+.header-logo{height:34px;width:auto}
 .header-title{color:#fff;font-size:15px;font-weight:700;flex:1}
 .sel-wrap{display:flex;gap:6px;align-items:center}
 .sel-wrap select{padding:5px 10px;border:1px solid rgba(255,255,255,0.3);border-radius:6px;background:rgba(255,255,255,0.12);color:#fff;font-size:13px;cursor:pointer}
@@ -136,7 +136,6 @@ table.rep td.v{color:#1a3a6e;font-variant-numeric:tabular-nums}
         <select id="selMonth"></select>
         <button class="btn-refresh" onclick="loadCurrent()">↻ 새로고침</button>
       </div>
-      <img id="headerLogoRight" src="" alt="" style="height:32px;display:none;margin-left:8px;border-radius:4px">
     </div>
     <div class="tab-bar" id="tabBar"></div>
   </header>
@@ -323,7 +322,7 @@ function showStamp(res) {
 
 function applyImages() {
   // 로고·전경은 site/ 에 파일로 둔다. 없으면 조용히 숨긴다.
-  ['headerLogoImg','headerLogoRight'].forEach(id => {
+  ['headerLogoImg'].forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
     el.onload  = () => { el.style.display = 'block'; };
