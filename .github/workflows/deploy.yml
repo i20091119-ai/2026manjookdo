@@ -1,0 +1,82 @@
+# 경남수학문화관 대시보드 — Apps Script 배포
+#
+# GitHub Actions에서 clasp로 코드를 올리고 배포 버전을 갱신한다.
+# Actions 탭 → 이 워크플로 선택 → 'Run workflow' 로 수동 실행한다.
+#
+# ⚠ 먼저 저장소 Settings → Secrets and variables → Actions 에
+#   아래 3개를 등록해야 동작한다. 없으면 그냥 실패한다(아무것도 안 망가짐).
+#     CLASPRC_JSON   내 PC의 ~/.clasprc.json 내용 전체 (clasp login 후 생성됨)
+#     SCRIPT_ID      Apps Script 편집기 → 프로젝트 설정 → 스크립트 ID
+#     DEPLOYMENT_ID  clasp deployments 로 확인한 기존 배포 ID (URL 유지용)
+#
+# 자세한 설정 방법은 docs/유지보수_가이드.md 의 '2-3. GitHub에서 자동 배포' 참고.
+
+name: Apps Script 배포
+
+on:
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: '배포 버전까지 올리기 (체크 해제하면 코드만 업로드)'
+        type: boolean
+        default: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # 테스트가 깨지면 여기서 멈춘다 — 잘못된 코드가 운영에 안 올라간다
+      - name: 테스트
+        run: |
+          node test/score.test.js
+          node test/report.test.js
+          node test/auth.test.js
+
+      - name: clasp 설치
+        run: npm install -g @google/clasp@2.4.2
+
+      - name: 인증 정보 쓰기
+        env:
+          CLASPRC: ${{ secrets.CLASPRC_JSON }}
+        run: |
+          if [ -z "$CLASPRC" ]; then
+            echo "::error::CLASPRC_JSON 시크릿이 없습니다. README의 배포 절차를 먼저 하세요."
+            exit 1
+          fi
+          printf '%s' "$CLASPRC" > "$HOME/.clasprc.json"
+
+      - name: .clasp.json 생성
+        env:
+          SCRIPT_ID: ${{ secrets.SCRIPT_ID }}
+        run: |
+          if [ -z "$SCRIPT_ID" ]; then
+            echo "::error::SCRIPT_ID 시크릿이 없습니다."
+            exit 1
+          fi
+          printf '{"scriptId":"%s","rootDir":"src"}' "$SCRIPT_ID" > .clasp.json
+
+      # src/ 안의 Code.js · index.html · appsscript.json 이 올라간다
+      - name: 코드 업로드
+        run: clasp push --force
+
+      # 기존 배포를 '새 버전'으로 갱신한다 — URL이 바뀌지 않는다
+      - name: 배포 버전 올리기
+        if: ${{ inputs.deploy }}
+        env:
+          DEPLOYMENT_ID: ${{ secrets.DEPLOYMENT_ID }}
+        run: |
+          if [ -z "$DEPLOYMENT_ID" ]; then
+            echo "::error::DEPLOYMENT_ID 시크릿이 없습니다. 없이 배포하면 URL이 바뀝니다."
+            exit 1
+          fi
+          clasp deploy --deploymentId "$DEPLOYMENT_ID" \
+                       --description "GitHub Actions $(date -u +'%Y-%m-%d %H:%M UTC')"
+
+      - name: 결과
+        run: echo "✅ 완료. 시크릿 창에서 웹앱 URL을 열어 확인하세요."

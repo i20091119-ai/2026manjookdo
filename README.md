@@ -72,6 +72,19 @@ clasp open        # 편집기 열기
 `src/` 안의 파일 내용을 Apps Script 편집기에 그대로 붙여넣어도 된다.
 `Code.js`는 편집기에서 `Code.gs`에 해당한다.
 
+## GitHub Actions로 배포 (선택)
+
+`.github/workflows/deploy.yml` 이 들어 있다. **Actions** 탭에서 수동 실행하면
+테스트 3개를 돌린 뒤 `clasp push` → 기존 배포 버전 갱신(URL 유지)까지 한다.
+
+동작하려면 저장소 Secrets에 `CLASPRC_JSON` / `SCRIPT_ID` / `DEPLOYMENT_ID`
+세 개를 등록해야 한다. 설정 절차는 `docs/유지보수_가이드.md`의
+**2-3. GitHub에서 자동 배포** 참고.
+
+> `CLASPRC_JSON`은 구글 계정 접근 권한이다. **저장소가 공개면 쓰지 말 것.**
+> 그리고 OAuth 동의(권한 승인)는 자동화되지 않는다 —
+> `appsscript.json`의 스코프를 바꾼 뒤에는 편집기에서 한 번 승인해야 한다.
+
 ## 테스트
 
 Apps Script 없이 node만으로 계산 로직을 검증한다. **배포 전에 돌려 보는 것을 권장.**
