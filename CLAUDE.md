@@ -1,43 +1,57 @@
 # 경남수학문화관 운영 만족도 대시보드
 
-Google Apps Script 웹앱. 4개 구글 폼 응답 시트를 읽어
+GitHub Pages 정적 대시보드. 4개 구글 폼 응답 시트를 읽어
 ① 월말 집계 보고서와 ② 설문별 월간 만족도 통계를 보여준다.
 
 ## 아키텍처
 
+Apps Script를 쓰지 않는다. **정적 사이트 + 빌드 타임 데이터 수집**이다.
+
 ```
-src/Code.js          서버. 스프레드시트 → JSON 변환만 담당. 통계 계산 안 함.
-src/index.html       클라이언트. UI + 통계 계산 전부 담당. 단일 파일.
-src/appsscript.json  매니페스트 (시간대·OAuth 스코프·웹앱 접근 권한)
-test/                node로 돌리는 순수 로직 테스트 (Apps Script 없이 실행됨)
+구글 시트 4개
+   ↓  GitHub Actions (하루 3회 + 수동 + push)
+site/data.json              ← 생성물. 커밋하지 않는다(.gitignore)
+   ↓  GitHub Pages
+site/index.html             ← 브라우저가 fetch해서 통계 계산
 ```
 
-클라이언트는 `checkPassword(pw)`로 토큰을 받고, `getAllData(token)`을 **한 번**만 호출한다.
-서버가 4개 시트 + 이미지를 한 응답에 담아 보내고, 하나가 실패해도 나머지는 살려서 보낸다.
-필터링·집계는 전부 클라이언트에서 한다.
+```
+site/index.html       대시보드 전체. UI + 통계 계산. 단일 파일.
+scripts/fetch-sheets.mjs  구글 시트 → data.json. 외부 패키지 없음(node 내장만).
+.github/workflows/publish.yml  테스트 → 시트 읽기 → Pages 배포
+test/                 node로 돌리는 순수 로직 테스트
+legacy/apps-script/   예전 Apps Script 판. 참고용, 더 이상 안 씀.
+```
 
-로고·전경 이미지는 `logo.html` / `scene.html`이 아니라
-**드라이브 파일 ID**(`LOGO_FILE_ID` / `SCENE_FILE_ID`)에서 읽어 base64로 인라인한다.
-드라이브 URL(`uc?export=view`) 직접 참조는 Apps Script CSP에 막힌다.
+서버가 없다. 인증도 없다 — Pages가 공개라 클라이언트 비밀번호는 무의미해서 걷어냈다.
+`fetch-sheets.mjs`가 `parseTs` / `scoreToNum` / `toScores` / `cell`을 갖고 있고,
+`site/index.html`은 이미 점수로 변환된 데이터를 받아 집계만 한다.
+
+로고는 `site/logo.png`에 파일로 둔다. 없으면 `applyImages()`가 조용히 숨긴다.
 
 ## 배포
 
-Apps Script 편집기 기준: 저장 → 배포 → 배포 관리 → 연필(수정) → 버전: 새 버전 → 배포.
-"새 배포"를 누르면 URL이 바뀌므로 쓰지 않는다.
+`git push` 하면 끝. `site/**` 또는 `scripts/**`가 바뀌면 Actions가 자동으로
+테스트 → 시트 읽기 → Pages 배포까지 한다.
+데이터만 새로 받고 싶으면 Actions 탭에서 수동 실행한다.
 
-clasp 사용 시 `clasp push` 후 위 절차로 버전만 올리면 된다.
-`src/Code.js`는 푸시되면 Apps Script에서 `Code.gs`로 보인다.
+사전 준비(한 번만): 구글 서비스 계정 키를 `GOOGLE_SERVICE_ACCOUNT_JSON` 시크릿에 넣고,
+시트 4개를 그 계정에 뷰어로 공유하고, Settings → Pages → Source를 GitHub Actions로 둔다.
 
 ## 데이터 소스
 
-| 설문 | 상수 | 시트 탭 |
-|---|---|---|
-| 자유관람 | `FREE_SS_ID` | `설문지 응답` |
-| 교구대여 | `EDUC_SS_ID` | `설문지 응답` |
-| 학교·가족 프로그램 | `PROG_SS_ID` | `설문지 응답` |
-| 여름방학 캠프 | `CAMP_SS_ID` | `설문지 응답 시트1` |
+시트 ID·탭 이름·컬럼 매핑이 전부 `scripts/fetch-sheets.mjs`의
+`SOURCES` 객체 한 곳에 모여 있다.
 
-캠프만 시트 탭 이름이 달라 `CAMP_SHEET_NAME`으로 따로 잡혀 있다.
+| 키 | 설문 | 시트 탭 | 범위 |
+|---|---|---|---|
+| `free` | 자유관람 | `설문지 응답` | A:P |
+| `educ` | 교구대여 | `설문지 응답` | A:I |
+| `prog` | 학교·가족 프로그램 | `설문지 응답` | A:O |
+| `camp` | 여름방학 캠프 | `설문지 응답 시트1` | A:I |
+
+캠프만 탭 이름이 다르다. 탭 이름을 못 찾으면 첫 번째 탭으로 넘어간다
+(`readValues()`의 400/404 폴백).
 
 ## 컬럼 매핑 (0-based)
 
@@ -101,8 +115,9 @@ clasp 사용 시 `clasp push` 후 위 절차로 버전만 올리면 된다.
 ## 작업 시 주의사항
 
 **문항 개수를 바꿀 때는 두 파일을 함께 고친다.**
-`Code.js`의 `toScores(row, 시작열, 개수)`와
-`index.html`의 `XXX_ITEMS` 배열 길이가 어긋나면 통계가 밀린다.
+`scripts/fetch-sheets.mjs`의 `toScores(row, 시작열, 개수)`와
+`site/index.html`의 `XXX_ITEMS` 배열 길이가 어긋나면 통계가 밀린다.
+`SOURCES`의 `range`(예: `A:P`)도 함께 늘려야 한다 — 안 그러면 값이 안 온다.
 주관식 컬럼 번호도 함께 밀리므로 같이 확인한다.
 문항1~4/문항5 규칙이 깨지면 월말 집계도 같이 틀어진다.
 
@@ -120,75 +135,64 @@ clasp 사용 시 `clasp push` 후 위 절차로 버전만 올리면 된다.
 새 표현이 나오면 조건을 추가하되 기존 조건은 지우지 않는다.
 `'매우 불만족'`을 `'불만족'`보다, `'불만족'`을 `'만족'`보다 먼저 검사해야 한다.
 
-**`index.html`에서 `innerHTML`로 `<script>`를 넣지 않는다.**
+**`site/index.html`에서 `innerHTML`로 `<script>`를 넣지 않는다.**
 브라우저가 실행하지 않는다. 드롭다운 핸들러는
 `window._xxx`에 데이터를 올려두고 전역 함수(`onItemFilter` 등)로 처리한다.
 
 **시트에서 온 문자열은 반드시 `escHtml()`을 거쳐 넣는다.**
 주관식 본문뿐 아니라 응답자·프로그램명 같은 메타 값도 마찬가지다.
 
-## 인증 (서버 검증)
+**`site/index.html`은 외부 스크립트를 부르지 않는다.**
+CDN 없이 단일 파일로 유지한다. `pipeline.test.js`가 이걸 검사한다.
 
-`appsscript.json`이 `ANYONE_ANONYMOUS`라 URL을 아는 사람은 `google.script.run`으로
-서버 함수를 직접 부를 수 있다. 그래서 두 겹으로 막는다.
+## 공개 범위
 
-**1. 데이터를 읽는 함수는 전부 이름 끝에 `_`를 붙였다.**
-Apps Script는 `_`로 끝나는 함수를 `google.script.run`에서 호출하지 못하게 한다.
-`getFreeData_` / `getEducData_` / `getProgramData_` / `getCampData_` / `collectAll_` / `getSheet_`.
-⚠ **`_`를 떼면 그 함수가 외부에 그대로 열린다.**
+**Pages 사이트는 URL을 아는 누구나 볼 수 있다.** 무료 요금제 Pages는 공개이고,
+정적 사이트라 클라이언트 비밀번호는 눈속임일 뿐이라 게이트를 제거했다.
+`data.json`도 그대로 내려받힌다.
 
-**2. 바깥에 열린 `getAllData(token)`은 토큰을 검사한다.**
+주관식 원문을 빼려면 `scripts/fetch-sheets.mjs`의 `INCLUDE_COMMENTS`를 `false`로.
+통계·월말 집계는 그대로 나오고 '주관식 응답' 절만 빈다.
 
-```
-checkPassword(pw) → {ok:true, token}   토큰을 CacheService에 6시간 저장
-getAllData(token) → requireAuth_(token) 통과해야 데이터 반환, 아니면 'AUTH_REQUIRED'
-revokeToken(token)                      로그아웃(잠금 버튼)
-```
-
-비밀번호는 `Code.gs`의 `DEFAULT_PW`(기본 `3141`)에 있고, **클라이언트로 내려가지 않는다.**
-스크립트 속성 `DASHBOARD_PW`를 설정하면 그 값이 우선한다 —
-소스 코드에 비밀번호를 남기고 싶지 않을 때 쓴다.
-
-무차별 대입 대비로 실패 시 `Utilities.sleep(1초)`, 10분 내 10회 이상 실패하면 5초로 늘린다.
-
-외부에 열려 있어도 되는 함수는 이것뿐이다:
-`doGet` / `checkPassword` / `revokeToken` / `getAllData` / `diagnose` / `getImages` +
-순수 계산 헬퍼(`parseTs`, `scoreToNum`, `toScores`, `cell`, `yearKeys`).
-`getImages`는 게이트 로고·전경용이라 인증 전에도 불러야 해서 열어 뒀다(브랜딩 이미지뿐).
-`diagnose`는 편집기 실행이 아니면(`isOwner_()`) 토큰을 요구한다.
-
-`test/auth.test.js`가 이 목록을 검사하므로, 새 함수를 공개로 추가하면 테스트가 깨진다.
-
-클라이언트는 토큰만 `sessionStorage`에 들고 있고, 만료되면 `lockOut()`으로 게이트에 돌아간다.
-비밀번호 자릿수를 바꾸면 `maxlength`와 점 표시 DOM(`d0`~`d3`)도 함께 고쳐야 한다.
+원본 스프레드시트 자체는 공개되지 않는다 — 서비스 계정만 읽고,
+사이트에는 `data.json`에 담은 것만 나간다.
+`SOURCES`에 없는 컬럼은 아예 JSON에 실리지 않는다.
 
 ## 테스트
 
-Apps Script 없이 node로 순수 로직만 돌린다. 배포 전에 세 개 다 통과시킨다.
+Apps Script 없이 node로만 돈다. Actions가 배포 전에 자동으로 돌리고,
+깨지면 배포가 멈춘다.
 
 ```bash
-node test/score.test.js    # scoreToNum() — 4세대 표현 인식
-node test/report.test.js   # 월말 집계 4개 표 — 2026.8 실제 수치 기준
-node test/auth.test.js     # 비밀번호·토큰 + 외부 노출 함수 목록
+node test/score.test.js     # scoreToNum() — 4세대 표현 인식
+node test/report.test.js    # 월말 집계 4개 표 — 2026.8 실제 수치 기준
+node test/pipeline.test.js  # 시트 원본 → data.json → 화면 (컬럼 매핑)
 ```
 
-`report.test.js`는 `index.html`에서 `<script>`를 떼어내 DOM 스텁 위에서 실행한다.
-`auth.test.js`는 `CacheService` 등을 가짜로 끼워 넣고 `Code.js`를 통째로 실행한다.
+`pipeline.test.js`가 제일 중요하다. `fetch-sheets.mjs`의 `SOURCES` map 함수를
+그대로 끌어와 가짜 시트 한 줄을 흘려보내므로, 컬럼 번호가 밀리면 여기서 잡힌다.
+`report.test.js`는 `site/index.html`에서 `<script>`를 떼어내 DOM 스텁 위에서 실행한다.
 
 ## 디버깅
 
-**서버 쪽** — Apps Script 편집기에서 `diagnose()`를 실행하면
-시트별 행 수, B열 고유값, 점수가 전부 null인 행 수가 실행 로그에 찍힌다.
-(편집기 실행은 토큰 없이 통과한다)
+**데이터가 안 맞을 때** — Actions 탭에서 마지막 실행 로그를 본다.
+`fetch-sheets.mjs`가 시트별 행 수와 연도를 찍는다.
 
-**클라이언트 쪽** — 로그인한 탭의 브라우저 콘솔:
+로컬에서 실제 데이터로 확인:
+```bash
+GOOGLE_SERVICE_ACCOUNT_JSON="$(cat key.json)" node scripts/fetch-sheets.mjs
+cd site && python3 -m http.server 8000
+```
+
+**브라우저에서** — 콘솔에 `DATA`가 그대로 떠 있다.
 ```javascript
-google.script.run
-  .withSuccessHandler(r => console.log(r.camp.rows.slice(0,3)))
-  .getAllData(sessionStorage.getItem('gnmath_token'))
+DATA.camp.rows.slice(0,3)
 ```
 `scores`가 전부 `null`이면 `scoreToNum()`이 표현을 인식하지 못한 것이고,
-값이 엉뚱한 위치에 있으면 컬럼 인덱스가 틀린 것이다.
+값이 엉뚱한 위치에 있으면 `SOURCES`의 컬럼 인덱스가 틀린 것이다.
 
-탭에 "해당 월의 응답이 없습니다"만 뜨면 화면이 그 달 시트의 실제 B열 값들을 같이 보여준다.
+탭에 "해당 월의 응답이 없습니다"만 뜨면 화면이 그 달의 실제 B열 값들을 같이 보여준다.
 `TABS`의 `filter` 문자열과 대조하면 된다.
+
+헤더 우측의 '갱신 …' 시각이 데이터를 마지막으로 읽어 온 때다.
+**화면은 실시간이 아니다** — 시트에 새 응답이 들어와도 워크플로가 돌기 전엔 안 보인다.

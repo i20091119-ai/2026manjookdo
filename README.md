@@ -1,31 +1,49 @@
 # 경남수학문화관 운영 만족도 대시보드
 
 경남수학문화관의 4개 설문(자유관람 · 교구대여 · 학교/가족 프로그램 · 방학캠프)
-응답을 모아 **월말 집계 보고서**와 **설문별 만족도 통계**를 보여주는 Google Apps Script 웹앱.
+응답을 모아 **월말 집계 보고서**와 **설문별 만족도 통계**를 보여주는 정적 웹 대시보드.
+
+Apps Script를 쓰지 않는다. GitHub Actions가 구글 시트를 읽어 JSON으로 떠 두고,
+GitHub Pages가 정적 사이트로 서빙한다. **배포는 `git push`.**
+
+```
+구글 시트 4개
+   ↓  GitHub Actions (하루 3회 + 수동)
+site/data.json
+   ↓  GitHub Pages
+site/index.html  ← 브라우저에서 통계 계산
+```
 
 ## 구조
 
 ```
-src/
-  Code.js           서버 — 스프레드시트 읽기 (Apps Script에서는 Code.gs)
-  index.html        클라이언트 — UI + 통계 계산
-  appsscript.json   매니페스트
+site/
+  index.html        대시보드 전체 (단일 파일 · 통계 계산 포함)
+  data.json         Actions가 만드는 생성물 (커밋 안 함)
+  logo.png          로고 (선택 · 없으면 자동으로 숨김)
+scripts/
+  fetch-sheets.mjs  구글 시트 → data.json (외부 패키지 없음)
+.github/workflows/
+  publish.yml       데이터 갱신 & Pages 배포
 test/
-  score.test.js     scoreToNum() 검증
-  report.test.js    월말 집계 4개 표 검증
+  score.test.js     만족도 응답 표현 인식
+  report.test.js    월말 집계 4개 표
+  pipeline.test.js  시트 원본 → data.json → 화면 (컬럼 매핑 검증)
 docs/
   유지보수_가이드.md  비개발자용 상세 수정 가이드
+legacy/
+  apps-script/      예전 Apps Script 판 (참고용 · 더 이상 안 씀)
 CLAUDE.md           작업 시 참고할 프로젝트 컨텍스트
 ```
 
 ## 화면 구성
 
-비밀번호 게이트를 통과하면 12개 탭이 나온다. 상단에서 연도·월을 고른다.
+상단에서 연도·월을 고른다. 탭 12개.
 
 ### 탭 0 — 📊 월말 집계
 
-그 달의 보고서 4개 표를 한 화면에 만들어 준다. 각 표 우측 **📋 복사** 버튼을 누르면
-머리글을 뺀 데이터 행이 TSV로 복사되어, 한컴/엑셀 양식의 첫 데이터 셀에 바로 붙여넣을 수 있다.
+그 달의 보고서 4개 표를 만들어 준다. 각 표 우측 **📋 복사** 버튼을 누르면
+머리글을 뺀 데이터 행이 TSV로 복사되어, 한컴/엑셀 양식의 첫 데이터 셀에 바로 붙는다.
 
 | 표 | 내용 |
 |---|---|
@@ -39,94 +57,55 @@ CLAUDE.md           작업 시 참고할 프로젝트 컨텍스트
 ### 탭 1~11 — 설문별 상세
 
 자유관람 / 교구대여(수학·SW) / 학교·가족(4종) / 캠프(4종).
-각 탭은 아래를 보여준다.
+응답수·평균 점수·만족 이상 비율, 대상별 분포, 문항별 분포(드롭다운 필터), 주관식 응답.
 
-- 전체 응답수 · 대상별 응답수 · **평균 점수** · **만족 이상 비율**
-- 전체 만족도 분포 (전 문항 합산)
-- 응답자별 만족도 분포 (평균 포함)
-- 문항별 응답 분포 — 응답자 드롭다운으로 필터
-- 주관식 응답 (문항별로 분리)
+## 처음 세팅 (한 번만)
 
-## 로컬 개발 (clasp)
+1. **구글 서비스 계정**을 만들고 키 JSON을 받는다
+2. 설문 응답 시트 4개를 그 서비스 계정 이메일에 **뷰어**로 공유한다
+3. 저장소 Settings → Secrets → Actions 에 `GOOGLE_SERVICE_ACCOUNT_JSON` 등록
+4. 저장소 Settings → Pages → Source 를 **GitHub Actions** 로 설정
+5. Actions 탭 → **데이터 갱신 & 배포** → Run workflow
 
-```bash
-npm install -g @google/clasp
-clasp login
+클릭 단위 절차는 `docs/유지보수_가이드.md`의 **2. 배포** 참고.
 
-# .clasp.json.example을 복사해 scriptId를 채운다
-cp .clasp.json.example .clasp.json
+## 이후 사용
 
-clasp push        # 로컬 → Apps Script
-clasp open        # 편집기 열기
-```
-
-`scriptId`는 Apps Script 편집기의 **프로젝트 설정**에서 확인할 수 있다.
-
-`clasp push` 후에도 웹앱에 반영하려면 배포 버전을 올려야 한다:
-**배포 → 배포 관리 → 연필 → 버전: 새 버전 → 배포**
-
-> "새 배포"는 URL이 바뀌므로 쓰지 않는다.
-
-## clasp 없이 쓰기
-
-`src/` 안의 파일 내용을 Apps Script 편집기에 그대로 붙여넣어도 된다.
-`Code.js`는 편집기에서 `Code.gs`에 해당한다.
-
-## GitHub Actions로 배포 (선택)
-
-`.github/workflows/deploy.yml` 이 들어 있다. **Actions** 탭에서 수동 실행하면
-테스트 3개를 돌린 뒤 `clasp push` → 기존 배포 버전 갱신(URL 유지)까지 한다.
-
-동작하려면 저장소 Secrets에 `CLASPRC_JSON` / `SCRIPT_ID` / `DEPLOYMENT_ID`
-세 개를 등록해야 한다. 설정 절차는 `docs/유지보수_가이드.md`의
-**2-3. GitHub에서 자동 배포** 참고.
-
-> `CLASPRC_JSON`은 구글 계정 접근 권한이다. **저장소가 공개면 쓰지 말 것.**
-> 그리고 OAuth 동의(권한 승인)는 자동화되지 않는다 —
-> `appsscript.json`의 스코프를 바꾼 뒤에는 편집기에서 한 번 승인해야 한다.
+- **데이터만 새로 받기**: Actions 탭 → Run workflow (또는 하루 3회 자동)
+- **화면·계산 수정**: `site/index.html` 고쳐서 push → 자동 재배포
+- **컬럼·시트 변경**: `scripts/fetch-sheets.mjs`의 `SOURCES` 수정
 
 ## 테스트
 
-Apps Script 없이 node만으로 계산 로직을 검증한다. **배포 전에 돌려 보는 것을 권장.**
+배포 전에 돌린다. Actions에서도 자동으로 돌고, 깨지면 배포가 멈춘다.
 
 ```bash
-node test/score.test.js    # 만족도 응답 표현 인식
-node test/report.test.js   # 월말 집계 4개 표
-node test/auth.test.js     # 비밀번호·토큰 + 외부 노출 함수 목록
+node test/score.test.js
+node test/report.test.js
+node test/pipeline.test.js
 ```
 
-`report.test.js`는 `src/index.html`에서 스크립트를 떼어내 실행하므로,
-집계 계산을 고쳤을 때 표가 틀어지면 바로 잡힌다.
+로컬에서 실제 데이터로 확인하려면:
 
-## 이미지 교체
-
-로고·전경은 구글 드라이브 파일에서 읽어 base64로 인라인한다.
-`src/Code.js` 상단의 `LOGO_FILE_ID` / `SCENE_FILE_ID`를 새 파일 ID로 바꾸면 된다.
-(드라이브 URL에서 `/d/` 와 `/view` 사이의 문자열)
-
-해당 파일은 배포 계정이 읽을 수 있어야 한다.
-
-## 문제가 생기면
-
-1. Apps Script 편집기에서 `diagnose()` 함수를 실행한다 —
-   시트별 행 수, B열 실제 값, 점수 인식 실패 행이 실행 로그에 나온다.
-2. `docs/유지보수_가이드.md` 의 트러블슈팅 절을 본다. 증상별로 정리되어 있다.
-
-## 비밀번호
-
-비밀번호 검증은 **서버(`Code.gs`)에서** 한다. 클라이언트 소스에는 비밀번호가 없다.
-
-```
-checkPassword(pw)  →  맞으면 토큰 발급 (6시간)
-getAllData(token)  →  토큰이 있어야 데이터를 준다
+```bash
+GOOGLE_SERVICE_ACCOUNT_JSON="$(cat key.json)" node scripts/fetch-sheets.mjs
+cd site && python3 -m http.server 8000    # http://localhost:8000
 ```
 
-설문 데이터를 읽는 함수는 이름 끝에 `_`를 붙여 `google.script.run`에서 아예 부를 수 없게 막았다.
-따라서 URL만 알고 비밀번호를 모르면 응답 데이터를 받을 수 없다.
+## ⚠️ 공개 범위
 
-기본 비밀번호는 `Code.gs`의 `DEFAULT_PW`(현재 `3141`)다.
-**소스에 비밀번호를 남기고 싶지 않다면** 편집기 → 프로젝트 설정 → 스크립트 속성에
-`DASHBOARD_PW`를 추가하면 그 값이 우선한다.
+**GitHub Pages 사이트는 URL을 아는 누구나 볼 수 있다.**
+무료 요금제에서 Pages는 공개이고, 정적 사이트라 비밀번호를 걸어도 의미가 없어
+로그인 화면을 없앴다. `data.json`도 그대로 내려받을 수 있다.
 
-> 웹앱 자체는 여전히 `ANYONE_ANONYMOUS`로 배포되어 있어 로그인 화면까지는 누구나 열린다.
-> 기관 계정으로만 열려면 `appsscript.json`의 `access`를 `DOMAIN`으로 바꾸면 된다.
+주관식 응답 원문을 공개하고 싶지 않으면
+`scripts/fetch-sheets.mjs` 위쪽의
+
+```javascript
+const INCLUDE_COMMENTS = true;   // → false
+```
+
+를 `false`로 바꾼다. 통계·월말 집계는 그대로 나오고 '주관식 응답' 절만 빈다.
+
+원본 스프레드시트 자체는 공개되지 않는다 — 서비스 계정만 읽고, 사이트에는
+`data.json`에 담은 것만 나간다.

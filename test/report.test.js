@@ -2,7 +2,7 @@
 //   실행:  node test/report.test.js
 const fs = require('fs');
 const path = require('path');
-const src = fs.readFileSync(path.join(__dirname, '..', 'src', 'index.html'), 'utf8');
+const src = fs.readFileSync(path.join(__dirname, '..', 'site', 'index.html'), 'utf8');
 const code = src.match(/<script>([\s\S]*)<\/script>/)[1];
 
 // ── 최소 DOM 스텁 ──
@@ -15,14 +15,14 @@ const document = {
   body:{appendChild(){},removeChild(){}}, execCommand(){},
 };
 const sessionStorage = { getItem: () => null, setItem(){} };
-const google = { script: { run: { withSuccessHandler(){return this}, withFailureHandler(){return this}, getImages(){}, getAllData(){} } } };
+const google = undefined;   // 정적 사이트라 Apps Script 호출이 없다
 const navigator = {};
 const win = {};
 
-const ctx = { document, sessionStorage, google, navigator, window: win, console };
-const fn = new Function('document','sessionStorage','google','navigator','window','console',
+const fetchStub = () => Promise.reject(new Error('테스트에서는 data.json을 받지 않는다'));
+const fn = new Function('document','sessionStorage','navigator','window','console','fetch',
   code + '\nreturn {buildReport, DATA, setD:(d)=>{DATA=d}, classifyPerson, reportCat, schoolLevelOfCamp, itemStat};');
-const M = fn(document, sessionStorage, google, navigator, win, console);
+const M = fn(document, sessionStorage, navigator, win, console, fetchStub);
 
 // ── 스크린샷 수치를 재현하는 합성 데이터 ──
 // 지정한 문항별 분포가 정확히 나오도록 행을 만든다.

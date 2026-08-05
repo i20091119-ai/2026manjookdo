@@ -19,3 +19,6 @@ Thumbs.db
 # 로그
 *.log
 node_modules/
+
+# 빌드 때 생성됨 (커밋하지 않는다)
+site/data.json

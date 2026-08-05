@@ -1,11 +1,10 @@
-// Code.gs의 scoreToNum() 검증 — 시트에 섞여 들어오는 표현들을 모두 인식하는지 본다.
+// scoreToNum() 검증 — 시트에 섞여 들어오는 표현들을 모두 인식하는지 본다.
 //   실행:  node test/score.test.js
 const fs = require('fs');
 const path = require('path');
 
-const src = fs.readFileSync(path.join(__dirname, '..', 'src', 'Code.js'), 'utf8');
-// Apps Script 전역(SpreadsheetApp 등)을 부르지 않는 순수 함수만 떼어 낸다
-const body = src.match(/function scoreToNum\(str\)[\s\S]*?\n}/)[0];
+const src = fs.readFileSync(path.join(__dirname, '..', 'scripts', 'fetch-sheets.mjs'), 'utf8');
+const body = src.match(/export function scoreToNum\(str\)[\s\S]*?\n}/)[0].replace('export ', '');
 const scoreToNum = new Function(body + '\nreturn scoreToNum;')();
 
 const CASES = [

@@ -1,0 +1,80 @@
+# 경남수학문화관 대시보드 — 데이터 갱신 & 배포
+#
+# 구글 시트 4개를 읽어 site/data.json 을 만들고, site/ 를 GitHub Pages로 올린다.
+# Apps Script는 쓰지 않는다.
+#
+# ⚠ 사전 준비 (한 번만)
+#   1) 저장소 Settings → Pages → Source 를 "GitHub Actions" 로 설정
+#   2) 저장소 Settings → Secrets and variables → Actions 에
+#      GOOGLE_SERVICE_ACCOUNT_JSON 등록 (서비스 계정 키 JSON 전체)
+#   3) 구글 시트 4개를 그 서비스 계정 이메일에 "뷰어"로 공유
+#   자세한 절차는 docs/유지보수_가이드.md 의 「2. 배포」 참고.
+
+name: 데이터 갱신 & 배포
+
+on:
+  # 하루 3번 — UTC 0/6/12시 = 한국시간 09/15/21시
+  schedule:
+    - cron: '0 0,6,12 * * *'
+
+  # Actions 탭에서 수동 실행 (설문이 막 들어온 걸 바로 보고 싶을 때)
+  workflow_dispatch:
+
+  # 사이트 코드를 고쳐서 push하면 자동 재배포
+  # ⚠ 나중에 기본 브랜치를 main으로 바꾸면 아래 목록도 정리할 것
+  push:
+    branches:
+      - main
+      - claude/read-and-analyze-44si3j
+    paths:
+      - 'site/**'
+      - 'scripts/**'
+      - '.github/workflows/publish.yml'
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 배포가 겹치지 않게 한 번에 하나만
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # 계산 로직이 깨졌으면 여기서 멈춘다 — 잘못된 표가 공개되지 않는다
+      - name: 테스트
+        run: |
+          node test/score.test.js
+          node test/report.test.js
+          node test/pipeline.test.js
+
+      - name: 구글 시트 읽기 → site/data.json
+        env:
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+        run: node scripts/fetch-sheets.mjs
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - id: deploy
+        uses: actions/deploy-pages@v4
+
+      - name: 결과
+        run: echo "✅ 배포 완료 → ${{ steps.deploy.outputs.page_url }}"

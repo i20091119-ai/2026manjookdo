@@ -1,0 +1,1135 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>경남수학문화관 운영 만족도</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Apple SD Gothic Neo','Noto Sans KR',sans-serif;font-size:14px;background:#f0f2f5;color:#1a1a1a}
+
+/* ── 헤더 ── */
+header{background:#1a3a6e;padding:0 20px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.25)}
+.header-top{display:flex;align-items:center;gap:12px;padding:10px 0 6px}
+.header-logo{height:36px}
+.header-title{color:#fff;font-size:15px;font-weight:700;flex:1}
+.sel-wrap{display:flex;gap:6px;align-items:center}
+.sel-wrap select{padding:5px 10px;border:1px solid rgba(255,255,255,0.3);border-radius:6px;background:rgba(255,255,255,0.12);color:#fff;font-size:13px;cursor:pointer}
+.sel-wrap select option{background:#1a3a6e;color:#fff}
+.btn-refresh{padding:5px 12px;border:1px solid rgba(255,255,255,0.4);border-radius:6px;background:transparent;color:#fff;font-size:12px;cursor:pointer}
+.btn-refresh:hover{background:rgba(255,255,255,0.15)}
+.stamp{color:rgba(255,255,255,0.55);font-size:11px;white-space:nowrap;margin-right:4px}
+
+/* ── 탭 ── */
+.tab-bar{display:flex;gap:2px;overflow-x:auto;padding-bottom:0;scrollbar-width:none}
+.tab-bar::-webkit-scrollbar{display:none}
+.tab-btn{flex-shrink:0;padding:8px 14px;font-size:12px;font-weight:500;color:rgba(255,255,255,0.6);border:none;background:transparent;cursor:pointer;border-bottom:3px solid transparent;transition:all .15s;white-space:nowrap}
+.tab-btn:hover{color:rgba(255,255,255,0.9)}
+.tab-btn.active{color:#fff;border-bottom-color:#5db8f5;font-weight:700}
+.tab-btn.report{background:rgba(255,255,255,0.10)}
+
+/* ── 컨텐츠 ── */
+.wrap{max-width:1360px;margin:0 auto;padding:20px 16px}
+.loading{text-align:center;padding:60px 0;color:#888}
+.empty{text-align:center;padding:40px;color:#aaa;line-height:1.8}
+.empty code{background:#eee;padding:1px 5px;border-radius:3px;color:#555}
+
+/* ── 카드 ── */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-bottom:16px}
+.card{background:#fff;border-radius:8px;padding:12px 14px;border:1px solid #e8e8e8}
+.card-label{font-size:11px;color:#888;margin-bottom:5px}
+.card-val{font-size:22px;font-weight:700;color:#1a2a4a}
+.card-val span{font-size:12px;font-weight:400;color:#999;margin-left:2px}
+.card.hi{background:#f5f9ff;border-color:#cfe0f5}
+.card.hi .card-val{color:#185FA5}
+
+/* ── 섹션 ── */
+.section{background:#fff;border-radius:8px;border:1px solid #e8e8e8;padding:18px 20px;margin-bottom:16px}
+.section-title{font-size:14px;font-weight:700;color:#1a2a4a;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.section-title select{font-size:12px;padding:4px 10px;border:1px solid #ddd;border-radius:6px;font-weight:400;color:#333}
+.note{font-size:11px;color:#8a8f98;margin-top:8px;line-height:1.6}
+
+/* ── 테이블 (설문 탭) ── */
+.scroll-x{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font-weight:600;font-size:11px;color:#666;padding:7px 10px;border-bottom:1px solid #eee;background:#fafafa;white-space:nowrap}
+td{padding:7px 10px;border-bottom:1px solid #f5f5f5;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+.num{text-align:right;font-variant-numeric:tabular-nums}
+.total-row td{font-weight:700;background:#f5f7ff}
+
+/* ── 바 ── */
+.bar-cell{min-width:70px;padding:7px 10px}
+.bar-bg{background:#eee;border-radius:4px;height:7px;overflow:hidden}
+.bar-fill{height:7px;border-radius:4px;transition:width .4s}
+
+/* ── 뱃지 ── */
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:500}
+.badge-excellent{background:#E1F5EE;color:#0F6E56}
+.badge-good{background:#E6F1FB;color:#185FA5}
+.badge-neutral{background:#F1EFE8;color:#5F5E5A}
+.badge-bad{background:#FAEEDA;color:#BA7517}
+.badge-worst{background:#FCEBEB;color:#A32D2D}
+
+/* ── 주관식 ── */
+.comment-q-title{font-size:13px;font-weight:700;color:#1a2a4a;padding:8px 12px;background:#eef2ff;border-radius:6px;margin-bottom:8px}
+.comment-cnt{font-weight:400;color:#378ADD;margin-left:6px}
+.comment-item{border-left:3px solid #378ADD;padding:9px 13px;margin-bottom:7px;background:#f9fbfe;border-radius:0 6px 6px 0}
+.comment-item-green{border-left-color:#1D9E75;background:#f4fdf8}
+.comment-item-amber{border-left-color:#EF9F27;background:#fffbf2}
+.comment-meta{font-size:11px;color:#888;margin-bottom:3px}
+.comment-text{font-size:13px;color:#333;line-height:1.7}
+
+/* ── 문항 색상 ── */
+.item-prog{color:#185FA5}
+.item-fac{color:#0F6E56}
+
+/* ══════════ 월말 집계 보고서 ══════════ */
+.rep-head{background:linear-gradient(135deg,#2f5fa8 0%,#1a3a6e 100%);color:#fff;border-radius:10px;padding:20px 24px;margin-bottom:18px;box-shadow:0 3px 10px rgba(26,58,110,.2)}
+.rep-head h2{font-size:19px;font-weight:700;margin-bottom:8px}
+.rep-head p{font-size:12px;opacity:.88;line-height:1.7}
+.rep-sec{background:#fff;border-radius:10px;border:1px solid #e3e6ec;padding:18px 20px;margin-bottom:18px}
+.rep-sec-title{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.rep-sec-title h3{font-size:15px;font-weight:700;color:#1a2a4a}
+.rep-sec-title h3 small{font-size:11px;font-weight:400;color:#8a8f98;margin-left:8px}
+.btn-copy{padding:7px 15px;border:none;border-radius:6px;background:#1a3a6e;color:#fff;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
+.btn-copy:hover{background:#0d2244}
+.btn-copy.done{background:#1D9E75}
+
+table.rep{width:100%;border-collapse:collapse;font-size:12px}
+table.rep th,table.rep td{border:1px solid #d8dde5;padding:5px 7px;text-align:center;white-space:nowrap;vertical-align:middle}
+table.rep thead th{background:#1a3a6e;color:#fff;font-weight:600;font-size:11px;line-height:1.3}
+table.rep thead tr.sub th{background:#2f5fa8;font-weight:500}
+table.rep td.nm{text-align:left;font-weight:600;color:#1a2a4a}
+table.rep td.no{color:#5a6478;font-size:11px}
+table.rep td.focus{background:#f4f7fc;font-weight:700;color:#1a2a4a;font-size:11px;line-height:1.6}
+table.rep tr.muted td{color:#b6bac2;background:#fbfbfc;font-weight:400}
+table.rep tr.muted td.nm{color:#b6bac2;font-weight:400}
+table.rep tr.muted td.focus{color:#1a2a4a;background:#f4f7fc;font-weight:700}
+table.rep td.sub{background:#eef3fb;font-weight:700;color:#1a3a6e}
+table.rep td.sat{background:#eaf7f0;font-weight:700;color:#0F6E56}
+table.rep td.pct{background:#fdf6e3;font-weight:700;color:#8a6100}
+table.rep tr.sum td{background:#fdf8e3;font-weight:700;color:#1a2a4a;border-top:2px solid #1a3a6e}
+table.rep td.v{color:#1a3a6e;font-variant-numeric:tabular-nums}
+.rep-formula{margin-top:12px;padding:9px 13px;background:#fdf6e3;border-radius:6px;font-size:11.5px;color:#7a5b12}
+.rep-notes{background:#fff;border:1px solid #e3e6ec;border-radius:10px;padding:16px 20px;font-size:11.5px;color:#5a6478;line-height:1.9}
+.rep-notes b{color:#1a2a4a}
+.rep-notes .t{display:block;margin-bottom:6px;font-size:12.5px;font-weight:700;color:#1a2a4a}
+
+@media(max-width:600px){
+  .cards{grid-template-columns:repeat(3,1fr)}
+  .header-title{font-size:13px}
+}
+</style>
+</head>
+<body>
+
+<!-- ── 앱 본체 ── -->
+<div id="app">
+  <header>
+    <div class="header-top">
+      <img class="header-logo" id="headerLogoImg" src="" alt="로고" style="display:none">
+      <span class="header-title">경남수학문화관 운영 만족도</span>
+      <span class="stamp" id="stamp" title="구글 시트를 마지막으로 읽어 온 시각"></span>
+      <div class="sel-wrap">
+        <select id="selYear"></select>
+        <select id="selMonth"></select>
+        <button class="btn-refresh" onclick="loadCurrent()">↻ 새로고침</button>
+      </div>
+      <img id="headerLogoRight" src="" alt="" style="height:32px;display:none;margin-left:8px;border-radius:4px">
+    </div>
+    <div class="tab-bar" id="tabBar"></div>
+  </header>
+  <div class="wrap">
+    <div id="content"><div class="loading">⏳ 데이터를 불러오는 중...</div></div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+// 상수
+// ══════════════════════════════════════════
+const SCORE_LABEL  = {5:'매우만족',4:'만족',3:'보통',2:'불만족',1:'매우불만족'};
+const BAR_COLORS   = {5:'#1D9E75',4:'#378ADD',3:'#888780',2:'#EF9F27',1:'#E24B4A'};
+const BADGE_CLASS  = {5:'excellent',4:'good',3:'neutral',2:'bad',1:'worst'};
+
+// ── 탭 정의 ──────────────────────────────
+// kind  : 어느 빌더로 그릴지 (report/free/educ/prog/camp)
+// src   : DATA의 어느 키를 쓸지
+// field : 필터로 비교할 행 속성
+// filter: 시트 B열 값과 정확히 일치해야 한다
+//
+// 탭 버튼 HTML은 이 배열에서 자동 생성된다 — 탭 추가·삭제는 여기만 고치면 된다.
+const TABS = [
+  { kind:'report', label:'📊 월말 집계' },
+  { kind:'free',   label:'자유관람',            src:'free' },
+  { kind:'educ',   label:'교구대여 (수학)',      src:'educ', field:'toolType',    filter:'수학교구' },
+  { kind:'educ',   label:'교구대여 (SW)',        src:'educ', field:'toolType',    filter:'SW교구' },
+  { kind:'prog',   label:'학교·가족 (학교수학)', src:'prog', field:'programType', filter:'학교수학체험프로그램' },
+  { kind:'prog',   label:'학교·가족 (학교SW)',   src:'prog', field:'programType', filter:'학교SW체험프로그램' },
+  { kind:'prog',   label:'학교·가족 (가족수학)', src:'prog', field:'programType', filter:'가족수학체험프로그램' },
+  { kind:'prog',   label:'학교·가족 (가족SW)',   src:'prog', field:'programType', filter:'가족SW체험프로그램' },
+  { kind:'camp',   label:'캠프 (초등수학)',      src:'camp', field:'campType',    filter:'초등학생 체험수학캠프' },
+  { kind:'camp',   label:'캠프 (초등SW)',        src:'camp', field:'campType',    filter:'초등학생 SW캠프' },
+  { kind:'camp',   label:'캠프 (중등수학)',      src:'camp', field:'campType',    filter:'중학생 체험수학캠프' },
+  { kind:'camp',   label:'캠프 (고등AI수학)',    src:'camp', field:'campType',    filter:'고등학생 인공지능수학캠프' },
+];
+
+// ── 문항 정의 ────────────────────────────
+// ⚠ 여기 개수와 Code.gs의 scores 배열 길이가 반드시 같아야 한다.
+const FREE_ITEMS = [
+  {label:'프1. 프로그램 내용이 재미있고 흥미로웠나요?', type:'prog'},
+  {label:'프2. 프로그램이 이해하기 쉽게 잘 구성되었나요?', type:'prog'},
+  {label:'프3. 프로그램 참여로 수학에 대한 흥미가 생겼나요?', type:'prog'},
+  {label:'프4. 기회가 된다면 또 프로그램에 참여하고 싶나요?', type:'prog'},
+  {label:'시1. 시설(체험탐구관·화장실)이 깨끗했나요?', type:'fac'},
+  {label:'시2. 시설(체험탐구관·화장실)을 사용하는데 안전했나요?', type:'fac'},
+  {label:'시3. 조명, 실내 온도 등 시설 환경이 적절했나요?', type:'fac'},
+  {label:'시4. 시설 사용에 대한 안내 및 응대가 친절했나요?', type:'fac'},
+];
+
+const EDUC_ITEMS_STUDENT = [
+  {label:'1. 교구 활용 수업이 재미있고 흥미로웠나요?', type:'prog'},
+  {label:'2. 교구 활용 수업을 통해 수업에 더 많이 참여했나요?', type:'prog'},
+  {label:'3. 교구 활용 수업으로 수업 내용과 더 친해진 느낌이 드나요?', type:'prog'},
+  {label:'4. 다음에도 체험교구를 활용한 수업에 참여하고 싶나요?', type:'prog'},
+];
+const EDUC_ITEMS_TEACHER = [
+  {label:'1. 교구의 대여 및 반납 절차(신청 방법, 일정 안내 등)는 편리했습니까?', type:'prog'},
+  {label:'2. 교구 활용 수업을 통해 학생들의 수업 참여도가 향상되었습니까?', type:'prog'},
+  {label:'3. 대여한 교구가 교육과정과 연계하여 수업에 활용하기 적절하였습니까?', type:'prog'},
+  {label:'4. 다음에도 체험교구를 대여할 의향이 있으십니까?', type:'prog'},
+];
+// 학생·교원이 같은 컬럼을 쓰지만 문항 문구가 다르다.
+// 합산 뷰에서 한쪽 문구를 쓰면 잘못된 표가 되므로 중립 라벨을 쓴다.
+const EDUC_ITEMS_COMBINED = [1,2,3,4].map(n => ({label:'문항 '+n+' (학생·교원 공통 컬럼)', type:'prog'}));
+
+const PROG_ITEMS = [
+  {label:'프1. 참여한 프로그램 내용이 재미있고 흥미로웠나요?', type:'prog'},
+  {label:'프2. 참여한 프로그램이 이해하기 쉽게 잘 구성되었나요?', type:'prog'},
+  {label:'프3. 프로그램 참여로 수학(SW)에 대한 흥미가 생겼나요?', type:'prog'},
+  {label:'프4. 기회가 된다면 또 프로그램에 참여하고 싶나요?', type:'prog'},
+  {label:'프5. 강사 선생님의 설명과 진행은 이해하기 쉬웠나요?', type:'prog'},
+  {label:'시1. 시설(체험탐구관·화장실)이 깨끗했나요?', type:'fac'},
+  {label:'시2. 시설(체험탐구관·화장실)을 사용하는데 안전했나요?', type:'fac'},
+  {label:'시3. 조명, 실내 온도 등 시설 환경이 적절했나요?', type:'fac'},
+  {label:'시4. 시설 사용에 대한 안내 및 응대가 친절했나요?', type:'fac'},
+];
+
+const CAMP_ITEMS = [
+  {label:'1. 참여한 프로그램 내용이 흥미로웠나요?', type:'prog'},
+  {label:'2. 참여한 프로그램 내용이 도움이 되었나요?', type:'prog'},
+  {label:'3. 프로그램 참여로 수학(SW)에 대한 흥미가 생겼나요?', type:'prog'},
+  {label:'4. 기회가 된다면 또 프로그램에 참여하고 싶나요?', type:'prog'},
+  {label:'5. 강사 선생님의 설명과 진행은 이해하기 쉬웠나요?', type:'prog'},
+];
+
+// ── 자유관람 응답자 분류 ──
+// ⚠ 배열이다(객체 아님). 긴 키가 먼저 와야 한다 —
+//   '초등학생 학부모'가 '초등학생'보다 앞에 있어야 학부모가 학생으로 안 샌다.
+const FREE_PART_ENTRIES = [
+  ['학부모 등 보호자','학부모 등 보호자'],
+  ['초등학생 학부모','학부모 등 보호자'],
+  ['중학생 학부모',  '학부모 등 보호자'],
+  ['고등학생 학부모','학부모 등 보호자'],
+  ['유아 학부모',    '학부모 등 보호자'],
+  ['초등학생',       '초등학생'],
+  ['중학생',         '중학생'],
+  ['고등학생',       '고등학생'],
+  ['교직원',         '교원'],
+  ['교사',           '교원'],
+  ['일반인',         '그외'],
+];
+const FREE_PART_CATS = ['초등학생','중학생','고등학생','교원','학부모 등 보호자','그외'];
+
+function mapFreeParticipant(v) {
+  const val = (v||'').trim();
+  for (const [k,cat] of FREE_PART_ENTRIES) { if (val.includes(k)) return cat; }
+  return '그외';
+}
+
+// 학교·가족 C열 응답자 값 정규화 — 다양한 표기를 통일
+function mapProgRespondent(v) {
+  const s = (v||'').trim();
+  if (s.includes('학부모') || s.includes('보호자')) return '학부모 등 보호자';
+  if (s.includes('학생')) return '학생';
+  if (s.includes('교원') || s.includes('교사') || s.includes('교직원')) return '교원';
+  if (s === '') return null; // 빈값 제외
+  return '그외';
+}
+
+// ══════════════════════════════════════════
+// 상태
+// ══════════════════════════════════════════
+let currentTab = 0;
+let DATA = { free:null, educ:null, prog:null, camp:null };
+const SRC_KEYS = ['free','educ','prog','camp'];
+let GENERATED_AT = null;
+
+// ══════════════════════════════════════════
+// 데이터 로드
+//
+// 서버가 없다. GitHub Actions가 구글 시트를 읽어 만들어 둔
+// data.json 을 그대로 받아서 쓴다.
+// ══════════════════════════════════════════
+function loadAll() {
+  setContent('<div class="loading">⏳ 데이터를 불러오는 중...</div>');
+  // 브라우저 캐시를 피해 항상 최신 파일을 받는다
+  fetch('data.json?t=' + Date.now(), { cache: 'no-store' })
+    .then(r => {
+      if (!r.ok) throw new Error('data.json 을 불러오지 못했습니다 (HTTP ' + r.status + ')');
+      return r.json();
+    })
+    .then(res => {
+      DATA.free = res.free || {years:[],rows:[]};
+      DATA.educ = res.educ || {years:[],rows:[]};
+      DATA.prog = res.prog || {years:[],rows:[]};
+      DATA.camp = res.camp || {years:[],rows:[]};
+      GENERATED_AT = res.generatedAt || null;
+      if (res.errors && Object.keys(res.errors).length) console.warn('일부 시트 로드 실패:', res.errors);
+      if (res.includeComments === false) console.info('주관식 원문은 이 사이트에 포함되지 않았습니다.');
+      showStamp(res);
+      populateSelects();
+      render();
+    })
+    .catch(e => {
+      setContent('<div class="empty">데이터를 불러오지 못했습니다.<br><br><code>'
+        + escHtml(e && e.message ? e.message : String(e)) + '</code><br><br>'
+        + 'GitHub의 <b>Actions</b> 탭에서 <b>데이터 갱신 &amp; 배포</b> 워크플로가<br>'
+        + '성공했는지 확인해 주세요.</div>');
+    });
+}
+
+function loadCurrent() {
+  DATA = {free:null,educ:null,prog:null,camp:null};
+  loadAll();
+}
+
+// 헤더에 '마지막 갱신' 시각을 찍는다 (데이터가 실시간이 아니므로 반드시 보여 준다)
+function showStamp(res) {
+  const el = document.getElementById('stamp');
+  if (!el) return;
+  if (!res.generatedAt) { el.textContent = ''; return; }
+  const d = new Date(res.generatedAt);
+  const p = n => String(n).padStart(2, '0');
+  let t = `${d.getFullYear()}.${p(d.getMonth()+1)}.${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+  const failed = res.errors ? Object.keys(res.errors) : [];
+  if (failed.length) t += ' · ⚠ ' + failed.join(',') + ' 읽기 실패';
+  el.textContent = '갱신 ' + t;
+  el.title = failed.length
+    ? '일부 시트를 읽지 못했습니다: ' + JSON.stringify(res.errors)
+    : '구글 시트를 마지막으로 읽어 온 시각';
+}
+
+function applyImages() {
+  // 로고·전경은 site/ 에 파일로 둔다. 없으면 조용히 숨긴다.
+  ['headerLogoImg','headerLogoRight'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.onload  = () => { el.style.display = 'block'; };
+    el.onerror = () => { el.style.display = 'none'; };
+    el.src = 'logo.png';
+  });
+}
+
+// ══════════════════════════════════════════
+// 연도·월 셀렉트
+// ══════════════════════════════════════════
+function getAllYears() {
+  const s = new Set();
+  SRC_KEYS.forEach(k=>{ if(DATA[k]) DATA[k].years.forEach(y=>s.add(y)); });
+  return [...s].sort((a,b)=>a-b);
+}
+function getMonthsForYear(year) {
+  const s = new Set();
+  SRC_KEYS.forEach(k=>{
+    if(DATA[k]) DATA[k].rows.filter(r=>r.year===year).forEach(r=>s.add(r.month));
+  });
+  return [...s].sort((a,b)=>a-b);
+}
+function populateSelects() {
+  const years = getAllYears();
+  const ySel = document.getElementById('selYear');
+  const prevY = ySel.value;
+  ySel.innerHTML='';
+  years.forEach(y=>{ const o=document.createElement('option');o.value=y;o.textContent=y+'년';ySel.appendChild(o); });
+  if(prevY && years.includes(parseInt(prevY))) ySel.value=prevY;
+  else ySel.value=years[years.length-1]||'';
+  updateMonths(false);
+}
+function updateMonths(doRender=true) {
+  const year = parseInt(document.getElementById('selYear').value);
+  const mSel = document.getElementById('selMonth');
+  const prevM = mSel.value;
+  const months = getMonthsForYear(year);
+  mSel.innerHTML='';
+  months.forEach(m=>{ const o=document.createElement('option');o.value=m;o.textContent=m+'월';mSel.appendChild(o); });
+  // 새로고침 시 보던 달을 유지한다 (없으면 가장 최근 달)
+  if (prevM && months.includes(parseInt(prevM))) mSel.value = prevM;
+  else if (months.length) mSel.value = months[months.length-1];
+  if(doRender) render();
+}
+
+// ══════════════════════════════════════════
+// 탭
+// ══════════════════════════════════════════
+function buildTabBar() {
+  const bar = document.getElementById('tabBar');
+  bar.innerHTML = '';
+  TABS.forEach((t,i)=>{
+    const b = document.createElement('button');
+    b.className = 'tab-btn' + (t.kind==='report'?' report':'') + (i===currentTab?' active':'');
+    b.textContent = t.label;
+    b.onclick = ()=>switchTab(i);
+    bar.appendChild(b);
+  });
+}
+function switchTab(idx) {
+  currentTab = idx;
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',i===idx));
+  render();
+}
+
+// ══════════════════════════════════════════
+// 렌더
+// ══════════════════════════════════════════
+function render() {
+  if (SRC_KEYS.every(k=>!DATA[k])) return;
+  const year  = parseInt(document.getElementById('selYear').value);
+  const month = parseInt(document.getElementById('selMonth').value);
+  if (!year||!month) { setContent('<div class="empty">표시할 응답이 없습니다.</div>'); return; }
+
+  const tab = TABS[currentTab];
+  let html;
+  switch (tab.kind) {
+    case 'report': html = buildReport(year,month); break;
+    case 'free':   html = buildFree(year,month,tab); break;
+    case 'educ':   html = buildEduc(year,month,tab); break;
+    case 'prog':   html = buildProg(year,month,tab); break;
+    case 'camp':   html = buildCamp(year,month,tab); break;
+    default:       html = '<div class="empty">알 수 없는 탭입니다.</div>';
+  }
+  setContent(html);
+}
+
+function setContent(h) { document.getElementById('content').innerHTML=h; }
+
+// 탭 필터에 걸리는 행 추출
+function rowsForTab(tab, year, month) {
+  const d = DATA[tab.src];
+  if (!d) return [];
+  return d.rows.filter(r =>
+    r.year===year && r.month===month &&
+    (tab.filter==null || r[tab.field]===tab.filter)
+  );
+}
+
+// 응답이 0건일 때 — 데이터가 없는 건지 필터 문자열이 틀린 건지 구분해서 알려준다
+function emptyFor(tab, year, month) {
+  const plain = '<div class="empty">해당 월의 응답이 없습니다.</div>';
+  if (!tab.filter) return plain;
+  const all = (DATA[tab.src] && DATA[tab.src].rows) || [];
+  const inMonth = all.filter(r=>r.year===year&&r.month===month);
+  if (!inMonth.length) return plain;
+  const found = [...new Set(inMonth.map(r=>r[tab.field]).filter(Boolean))];
+  return '<div class="empty">해당 월의 응답이 없습니다.<br><br>'
+    + '이 탭은 <code>' + escHtml(tab.filter) + '</code> 로 거릅니다.<br>'
+    + year + '년 ' + month + '월 시트에 실제로 들어온 값: '
+    + (found.length ? found.map(v=>'<code>'+escHtml(v)+'</code>').join(' ') : '(없음)')
+    + '<br><br>값이 다르면 <code>TABS</code> 배열의 <code>filter</code>를 시트 값에 맞추세요.</div>';
+}
+
+// ══════════════════════════════════════════
+// 공통 빌더 헬퍼
+// ══════════════════════════════════════════
+function scoreDistOf(rows, scoreIdx) {
+  // scoreIdx: undefined=전체합산, number=특정문항
+  const d={5:0,4:0,3:0,2:0,1:0};
+  rows.forEach(r=>{
+    if(scoreIdx===undefined) r.scores.forEach(s=>{if(s)d[s]++;});
+    else { const s=r.scores[scoreIdx]; if(s)d[s]++; }
+  });
+  return d;
+}
+function distTotal(d){return d[5]+d[4]+d[3]+d[2]+d[1];}
+function distAvg(d){
+  const t=distTotal(d); if(!t) return null;
+  return (5*d[5]+4*d[4]+3*d[3]+2*d[2]+1*d[1])/t;
+}
+function distSatPct(d){
+  const t=distTotal(d); if(!t) return null;
+  return (d[5]+d[4])/t*100;
+}
+
+function buildSummaryCards(total, countMap, rows) {
+  let h=`<div class="cards"><div class="card"><div class="card-label">전체 응답수</div><div class="card-val">${total}<span>명</span></div></div>`;
+  Object.entries(countMap).forEach(([k,v])=>{
+    if(v>0) h+=`<div class="card"><div class="card-label">${escHtml(k)}</div><div class="card-val">${v}<span>명</span></div></div>`;
+  });
+  if (rows && rows.length) {
+    const d = scoreDistOf(rows);
+    const avg = distAvg(d), sat = distSatPct(d);
+    if (avg!==null) {
+      h+=`<div class="card hi"><div class="card-label">평균 점수</div><div class="card-val">${avg.toFixed(2)}<span>/5</span></div></div>`;
+      h+=`<div class="card hi"><div class="card-label">만족 이상</div><div class="card-val">${sat.toFixed(1)}<span>%</span></div></div>`;
+    }
+  }
+  return h+'</div>';
+}
+
+function buildTotalDistSection(rows) {
+  const d = scoreDistOf(rows);
+  const total = distTotal(d);
+  let h=`<div class="section"><div class="section-title">전체 설문내용별 응답 분포 (전 문항 합산)</div>
+    <div class="scroll-x"><table>
+    <thead><tr><th>응답</th><th class="num">응답수</th><th class="num">비율</th><th class="bar-cell">분포</th></tr></thead><tbody>`;
+  [5,4,3,2,1].forEach(s=>{
+    const cnt=d[s], pct=total?Math.round(cnt/total*100):0;
+    h+=`<tr><td><span class="badge badge-${BADGE_CLASS[s]}">${SCORE_LABEL[s]}</span></td>
+      <td class="num">${cnt}</td><td class="num">${pct}%</td>
+      <td class="bar-cell"><div class="bar-bg"><div class="bar-fill" style="width:${pct}%;background:${BAR_COLORS[s]}"></div></div></td></tr>`;
+  });
+  h+=`<tr class="total-row"><td>합계</td><td class="num">${total}</td><td class="num">100%</td><td></td></tr>`;
+  return h+'</tbody></table></div></div>';
+}
+
+function buildPartDistSection(title, rows, catMap) {
+  const allDist = scoreDistOf(rows);
+  const allTotal = distTotal(allDist);
+  let h=`<div class="section"><div class="section-title">${escHtml(title)}</div>
+    <div class="scroll-x"><table>
+    <thead><tr><th>대상</th><th class="num">응답수</th>`;
+  [5,4,3,2,1].forEach(s=>h+=`<th class="num">${SCORE_LABEL[s]}</th>`);
+  h+=`<th class="num">유효 답변수</th><th class="num">평균</th></tr></thead><tbody>`;
+  Object.entries(catMap).forEach(([cat,catRows])=>{
+    if(!catRows.length) return;
+    const d=scoreDistOf(catRows), t=distTotal(d), a=distAvg(d);
+    h+=`<tr><td>${escHtml(cat)}</td><td class="num">${catRows.length}</td>`;
+    [5,4,3,2,1].forEach(s=>h+=`<td class="num">${d[s]}</td>`);
+    h+=`<td class="num"><strong>${t}</strong></td><td class="num">${a===null?'-':a.toFixed(2)}</td></tr>`;
+  });
+  const allAvg = distAvg(allDist);
+  h+=`<tr class="total-row"><td>전체</td><td class="num">${rows.length}</td>`;
+  [5,4,3,2,1].forEach(s=>h+=`<td class="num">${allDist[s]}</td>`);
+  h+=`<td class="num"><strong>${allTotal}</strong></td><td class="num">${allAvg===null?'-':allAvg.toFixed(2)}</td></tr>`;
+  h+=`</tbody></table></div>
+      <div class="note">※ '유효 답변수'는 응답자 수 × 문항 수 중 실제로 점수로 인식된 답변의 개수입니다 (점수의 합이 아닙니다).</div></div>`;
+  return h;
+}
+
+// 문항별 표 — 드롭다운으로 rows와 문항 정의를 함께 갈아끼운다
+function buildItemSection(rows, defaultItems, filterCats, itemsByCat, noteByCat) {
+  window._itemRows    = filterCats;
+  window._itemItems   = itemsByCat || null;
+  window._itemDefault = defaultItems;
+  window._itemNotes   = noteByCat || {};
+
+  window._makeItemTable = function(targetRows, defs) {
+    let t=`<div class="scroll-x"><table>
+      <thead><tr><th style="min-width:230px">문항</th>
+      <th class="num">매우만족</th><th class="num">만족</th><th class="num">보통</th>
+      <th class="num">불만족</th><th class="num">매우불만족</th><th class="num">응답수</th><th class="num">평균</th>
+      </tr></thead><tbody>`;
+    let gd={5:0,4:0,3:0,2:0,1:0};
+    defs.forEach((item,i)=>{
+      const d=scoreDistOf(targetRows,i), cnt=distTotal(d), a=distAvg(d);
+      [5,4,3,2,1].forEach(s=>{gd[s]+=d[s];});
+      t+=`<tr><td class="item-${item.type}" style="font-size:12px">${escHtml(item.label)}</td>
+        <td class="num">${d[5]}</td><td class="num">${d[4]}</td><td class="num">${d[3]}</td>
+        <td class="num">${d[2]}</td><td class="num">${d[1]}</td>
+        <td class="num"><strong>${cnt}</strong></td><td class="num">${a===null?'-':a.toFixed(2)}</td></tr>`;
+    });
+    const ga=distAvg(gd);
+    t+=`<tr class="total-row"><td><strong>합계</strong></td>
+      <td class="num">${gd[5]}</td><td class="num">${gd[4]}</td><td class="num">${gd[3]}</td>
+      <td class="num">${gd[2]}</td><td class="num">${gd[1]}</td>
+      <td class="num"><strong>${distTotal(gd)}</strong></td><td class="num">${ga===null?'-':ga.toFixed(2)}</td></tr>`;
+    return t+'</tbody></table></div>';
+  };
+
+  const keys = Object.keys(filterCats);
+  const firstKey = keys[0];
+  let h=`<div class="section"><div class="section-title"><span>문항별 응답 분포</span>
+    <select onchange="onItemFilter(this.value)">`;
+  keys.forEach(k=>h+=`<option value="${escHtml(k)}">${escHtml(k)}</option>`);
+  h+=`</select></div><div id="itemTable">${window._makeItemTable(filterCats[firstKey]||rows, (itemsByCat&&itemsByCat[firstKey])||defaultItems)}</div>`;
+  h+=`<div class="note" id="itemNote">${escHtml((noteByCat||{})[firstKey]||'')}</div></div>`;
+  return h;
+}
+
+function onItemFilter(val) {
+  const rows = (window._itemRows||{})[val]||[];
+  const defs = (window._itemItems && window._itemItems[val]) || window._itemDefault;
+  const el = document.getElementById('itemTable');
+  if(el && window._makeItemTable) el.innerHTML = window._makeItemTable(rows, defs);
+  const nel = document.getElementById('itemNote');
+  if(nel) nel.textContent = (window._itemNotes||{})[val] || '';
+}
+
+function buildComments(commentDefs) {
+  if(!commentDefs.some(c=>c.rows.length>0)) return '';
+  let h=`<div class="section"><div class="section-title">주관식 응답</div>`;
+  commentDefs.forEach(({label,rows,color})=>{
+    if(!rows.length) return;
+    h+=`<div class="comment-q-title">${escHtml(label)} <span class="comment-cnt">${rows.length}건</span></div>`;
+    rows.forEach(r=>{
+      const who = r.respondent || r.participant || r.campType || '';
+      h+=`<div class="comment-item comment-item-${color||'blue'}">
+        <div class="comment-meta">${r.year}.${r.month}.${r.day} · ${escHtml(who)}</div>
+        <div class="comment-text">${escHtml(r._comment)}</div>
+      </div>`;
+    });
+  });
+  return h+'</div>';
+}
+
+function validComment(s){ const v=(s||'').trim(); return v.length>1 && v!=='..' && v!=='--'; }
+function escHtml(s){return(s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+// ══════════════════════════════════════════
+// [탭] 자유관람
+// ══════════════════════════════════════════
+function buildFree(year,month,tab) {
+  if(!DATA.free) return '<div class="empty">데이터 로드 중...</div>';
+  const raw = rowsForTab(tab,year,month);
+  if(!raw.length) return emptyFor(tab,year,month);
+  const rows = raw.map(r=>({...r, participant: mapFreeParticipant(r.participant)}));
+
+  const catMap={};
+  FREE_PART_CATS.forEach(c=>catMap[c]=rows.filter(r=>r.participant===c));
+  const countMap={};
+  FREE_PART_CATS.forEach(c=>{countMap[c]=catMap[c].length;});
+
+  const filterCats={'전체':rows};
+  FREE_PART_CATS.forEach(c=>{if(catMap[c].length) filterCats[c]=catMap[c];});
+
+  const c1rows = rows.filter(r=>validComment(r.comment1)).map(r=>({...r,_comment:r.comment1}));
+  const c2rows = rows.filter(r=>validComment(r.comment2)).map(r=>({...r,_comment:r.comment2}));
+
+  return buildSummaryCards(rows.length, countMap, rows)
+    + buildTotalDistSection(rows)
+    + buildPartDistSection('대상별 만족도 분포 (전 문항 합산)', rows, catMap)
+    + buildItemSection(rows, FREE_ITEMS, filterCats)
+    + buildComments([
+        {label:'주1. 참여한 프로그램에서 가장 기억에 남는 활동은 무엇인가요?', rows:c1rows, color:'blue'},
+        {label:'주2. 시설을 이용하면서 느낀 점이나 개선사항을 자유롭게 적어 주세요.', rows:c2rows, color:'green'},
+      ]);
+}
+
+// ══════════════════════════════════════════
+// [탭] 교구대여
+// ══════════════════════════════════════════
+function buildEduc(year,month,tab) {
+  if(!DATA.educ) return '<div class="empty">데이터 로드 중...</div>';
+  const rows = rowsForTab(tab,year,month);
+  if(!rows.length) return emptyFor(tab,year,month);
+
+  const SCHOOL_LEVELS = ['초등학교','중학교','고등학교'];
+  const RESP_TYPES    = ['학생','교원'];
+  const combos = [];
+  SCHOOL_LEVELS.forEach(sl => RESP_TYPES.forEach(rt => combos.push(sl+' · '+rt)));
+
+  const comboMap = {};
+  combos.forEach(key => {
+    const [sl, rt] = key.split(' · ');
+    comboMap[key] = rows.filter(r => r.schoolLevel===sl && r.respondent===rt);
+  });
+
+  const countMap = {};
+  combos.forEach(k => { if(comboMap[k].length) countMap[k] = comboMap[k].length; });
+
+  const students = rows.filter(r=>r.respondent==='학생');
+  const teachers = rows.filter(r=>r.respondent==='교원');
+
+  // 학생·교원이 같은 컬럼을 쓰지만 문항 문구가 다르다.
+  // 합산 뷰에는 중립 라벨 + 경고 문구를 붙인다.
+  const filterCats = {'전체 (학생+교원)': rows};
+  const itemsByCat = {'전체 (학생+교원)': EDUC_ITEMS_COMBINED};
+  const noteByCat  = {'전체 (학생+교원)': "※ 학생용·교원용 문항 문구가 서로 다릅니다. 합산 표에서는 문항 번호만 표시합니다. 문구까지 보려면 '학생 전체' 또는 '교원 전체'를 선택하세요."};
+  if (students.length) { filterCats['학생 전체'] = students; itemsByCat['학생 전체'] = EDUC_ITEMS_STUDENT; }
+  if (teachers.length) { filterCats['교원 전체'] = teachers; itemsByCat['교원 전체'] = EDUC_ITEMS_TEACHER; }
+  combos.forEach(k => {
+    if(comboMap[k].length) {
+      filterCats[k] = comboMap[k];
+      itemsByCat[k] = k.split(' · ')[1]==='교원' ? EDUC_ITEMS_TEACHER : EDUC_ITEMS_STUDENT;
+    }
+  });
+
+  const catMap = {};
+  combos.forEach(k=>{ if(comboMap[k].length) catMap[k]=comboMap[k]; });
+
+  const cRows = rows.filter(r=>validComment(r.comment1)).map(r=>({...r,_comment:r.comment1}));
+
+  return buildSummaryCards(rows.length, countMap, rows)
+    + buildTotalDistSection(rows)
+    + buildPartDistSection('응답자별 만족도 분포 (학교급 × 설문자, 전 문항 합산)', rows, catMap)
+    + buildItemSection(rows, EDUC_ITEMS_COMBINED, filterCats, itemsByCat, noteByCat)
+    + buildComments([
+        {label:'주관식. 체험교구 활용 관련 자유의견', rows:cRows, color:'blue'},
+      ]);
+}
+
+// ══════════════════════════════════════════
+// [탭] 학교·가족 프로그램
+// ══════════════════════════════════════════
+function buildProg(year,month,tab) {
+  if(!DATA.prog) return '<div class="empty">데이터 로드 중...</div>';
+  const raw = rowsForTab(tab,year,month);
+  if(!raw.length) return emptyFor(tab,year,month);
+  const rows = raw
+    .map(r=>({...r, respondent: mapProgRespondent(r.respondent)}))
+    .filter(r=>r.respondent!==null);
+  if(!rows.length) return '<div class="empty">해당 월의 응답이 없습니다. (응답자 구분이 모두 빈 값)</div>';
+
+  const isSchool = tab.filter.indexOf('학교') === 0;
+  const respCats = isSchool
+    ? ['학생','교원','학부모 등 보호자','그외']
+    : ['학생','학부모 등 보호자','그외'];
+
+  const catMap={};
+  respCats.forEach(c=>catMap[c]=rows.filter(r=>r.respondent===c));
+  const countMap={};
+  respCats.forEach(c=>{ if(catMap[c].length) countMap[c]=catMap[c].length; });
+
+  const filterCats={'전체':rows};
+  respCats.forEach(c=>{if(catMap[c].length) filterCats[c]=catMap[c];});
+
+  const c1rows = rows.filter(r=>validComment(r.comment1)).map(r=>({...r,_comment:r.comment1}));
+  const c2rows = rows.filter(r=>validComment(r.comment2)).map(r=>({...r,_comment:r.comment2}));
+  const c3rows = rows.filter(r=>validComment(r.comment3)).map(r=>({...r,_comment:r.comment3}));
+
+  return buildSummaryCards(rows.length, countMap, rows)
+    + buildTotalDistSection(rows)
+    + buildPartDistSection('응답자별 만족도 분포 (전 문항 합산)', rows, catMap)
+    + buildItemSection(rows, PROG_ITEMS, filterCats)
+    + buildComments([
+        {label:'주1. 참여한 프로그램에서 가장 기억에 남는 활동은 무엇인가요?', rows:c1rows, color:'blue'},
+        {label:'주2. 강사의 설명이나 진행에 대해 좋았던 점이나 바라는 점을 간단히 적어 주세요.', rows:c2rows, color:'green'},
+        {label:'주3. 시설을 이용하면서 느낀 점이나 개선사항을 자유롭게 적어 주세요.', rows:c3rows, color:'amber'},
+      ]);
+}
+
+// ══════════════════════════════════════════
+// [탭] 여름방학 캠프
+// 응답자 구분 컬럼이 없다 — 학교급은 캠프 종류명으로 판별한다.
+// ══════════════════════════════════════════
+function buildCamp(year, month, tab) {
+  if (!DATA.camp) return '<div class="empty">데이터 로드 중...</div>';
+  const rows = rowsForTab(tab,year,month);
+  if (!rows.length) return emptyFor(tab,year,month);
+
+  const LV = {'초':'초등학생','중':'중학생','고':'고등학생','일반':'그 외'};
+  const countMap = {};
+  countMap[LV[schoolLevelOfCamp(tab.filter)]] = rows.length;
+
+  const c1rows = rows.filter(r => validComment(r.comment1)).map(r => ({...r, _comment: r.comment1}));
+  const c2rows = rows.filter(r => validComment(r.comment2)).map(r => ({...r, _comment: r.comment2}));
+
+  return buildSummaryCards(rows.length, countMap, rows)
+    + buildTotalDistSection(rows)
+    + buildItemSection(rows, CAMP_ITEMS, {'전체': rows})
+    + buildComments([
+        {label:'주1. 참여한 프로그램에서 가장 기억에 남는 활동은 무엇인가요?', rows: c1rows, color:'blue'},
+        {label:'주2. 강사의 설명이나 진행에 대해 좋았던 점이나 바라는 점을 간단히 적어 주세요.', rows: c2rows, color:'green'},
+      ]);
+}
+
+// ══════════════════════════════════════════════════════════
+//  📊 월말 집계 보고서
+// ══════════════════════════════════════════════════════════
+
+// 표1은 7분류, 표2(거제 양식)는 6분류 — '유아'와 '일반'을 '그 외'로 합친다.
+const CATS7 = ['유','초','중','고','교원','보호자','일반'];
+const CATS6 = [
+  {label:'초등학생', from:['초']},
+  {label:'중학생',   from:['중']},
+  {label:'고등학생', from:['고']},
+  {label:'교원',     from:['교원']},
+  {label:'보호자',   from:['보호자']},
+  {label:'그 외',    from:['유','일반']},
+];
+
+// 표1 좌측 운영중점 병합 셀
+const REPORT_GROUPS = [
+  '모두가<br>즐기는<br>체험·탐구<br>중심의<br>수학문화<br>대중화',
+  '교원의<br>전문적<br>수업역량<br>강화로<br>수학교육<br>실현',
+];
+
+// ── 보고서 프로그램 행 정의 ───────────────────────────────
+// src   : DATA 키. null이면 대시보드에 원천이 없는 행 — 양식만 회색으로 표시한다.
+// field : 필터로 비교할 행 속성
+// filter: 문자열 또는 문자열 배열(여러 설문 종류를 한 행으로 합산). null이면 전체.
+// hasInstructor : 문항5(강사 만족도)가 있는 설문인지
+//
+// ⚠ 캠프 행의 filter 값은 캠프 시트 B열 값과 정확히 같아야 한다.
+//    TABS의 캠프 탭 filter와 같은 문자열을 쓴다.
+const REPORT_PROGRAMS = [
+  { grp:0, no:'1-(01)', name:'학교체험수학프로그램',       src:'prog', field:'programType', filter:'학교수학체험프로그램', hasInstructor:true },
+  { grp:0, no:'1-(02)', name:'학교SW체험프로그램',         src:'prog', field:'programType', filter:'학교SW체험프로그램',   hasInstructor:true },
+  { grp:0, no:'1-(03)', name:'학생체험수학캠프',           src:'camp', field:'campType',
+    filter:['초등학생 체험수학캠프','중학생 체험수학캠프','고등학생 인공지능수학캠프'], hasInstructor:true },
+  { grp:0, no:'1-(04)', name:'학생SW체험캠프',             src:'camp', field:'campType',
+    filter:['초등학생 SW캠프'], hasInstructor:true },
+  { grp:0, no:'1-(05)', name:'체험수학 교구대여',           src:'educ', field:'toolType',    filter:'수학교구', hasInstructor:false },
+  { grp:0, no:'1-(06)', name:'SW교육 교구대여',             src:'educ', field:'toolType',    filter:'SW교구',   hasInstructor:false },
+  { grp:0, no:'1-(07)', name:'경남학생수학탐구페스티벌',     src:null },
+  { grp:0, no:'1-(08)', name:'가족과 함께하는 수학체험교실', src:'prog', field:'programType', filter:'가족수학체험프로그램', hasInstructor:true },
+  { grp:0, no:'1-(09)', name:'가족과 함께하는 SW체험교실',   src:'prog', field:'programType', filter:'가족SW체험프로그램',   hasInstructor:true },
+  { grp:0, no:'1-(10)', name:'자유관람체험',                src:'free', field:null,          filter:null,       hasInstructor:false },
+  { grp:0, no:'1-(11)', name:'기타(외부기관 방문 등)',       src:null },
+  { grp:1, no:'2-(1)',  name:'SW교육 교사 직무연수',         src:null },
+  { grp:1, no:'2-(2)',  name:'수학학습경험탐색연구',         src:null },
+  { grp:1, no:'2-(3)',  name:'기타',                        src:null },
+];
+
+// 표2·3·4에 싣는 행 (양식만 있는 1-(07)/1-(11)/2-(x) 제외)
+const SURVEY_ROWS = ['1-(01)','1-(02)','1-(03)','1-(04)','1-(05)','1-(06)','1-(08)','1-(09)','1-(10)'];
+
+const Q_PROGRAM = 4;   // 문항1~4 = 프로그램 운영 만족도
+const Q_INSTR   = 1;   // 문항5   = 강사 만족도
+
+function schoolLevelOfCamp(name) {
+  const t = String(name||'');
+  if (t.includes('초등')) return '초';
+  if (t.includes('중학')) return '중';
+  if (t.includes('고등')) return '고';
+  return '일반';
+}
+
+// 응답자 텍스트 → 7분류. 긴 키(학부모/보호자)를 먼저 검사한다.
+function classifyPerson(v) {
+  const s = String(v||'').trim();
+  if (!s) return null;
+  if (s.includes('학부모') || s.includes('보호자')) return '보호자';
+  if (s.includes('교원') || s.includes('교사') || s.includes('교직원')) return '교원';
+  if (s.includes('유아')) return '유';
+  if (s.includes('초등')) return '초';
+  if (s.includes('중학')) return '중';
+  if (s.includes('고등')) return '고';
+  if (s.includes('학생')) return '초';   // 구버전 '학생' 단독 표기 → 초등학생으로 본다
+  return '일반';
+}
+
+// 설문마다 학교급·응답자 정보의 위치가 달라 여기서 흡수한다
+function reportCat(src, r) {
+  if (src === 'educ') {
+    if (String(r.respondent||'').includes('교')) return '교원';
+    const sl = r.schoolLevel || '';
+    if (sl.includes('초등')) return '초';
+    if (sl.includes('중학')) return '중';
+    if (sl.includes('고등')) return '고';
+    return '일반';
+  }
+  if (src === 'camp') return schoolLevelOfCamp(r.campType);
+  return classifyPerson(src === 'free' ? r.participant : r.respondent);
+}
+
+function reportRowsOf(p, year, month) {
+  if (!p.src) return null;                  // 원천 없음 — 양식만 표시
+  const d = DATA[p.src];
+  if (!d) return [];
+  return d.rows.filter(r => {
+    if (r.year !== year || r.month !== month) return false;
+    if (p.filter == null) return true;
+    const v = r[p.field];
+    return Array.isArray(p.filter) ? p.filter.indexOf(v) !== -1 : v === p.filter;
+  });
+}
+
+function counts7Of(p) {
+  const c = {}; CATS7.forEach(k=>c[k]=0);
+  (p.rows||[]).forEach(r => { const k = reportCat(p.src, r); if (k && c[k]!==undefined) c[k]++; });
+  return c;
+}
+
+// 문항N(1-based) 분포 — 모든 설문에서 문항N = scores[N-1]
+function itemStat(rows, n) {
+  const d = scoreDistOf(rows, n-1);
+  return { d, total: distTotal(d), sat: d[5]+d[4] };
+}
+
+const blank = v => (v ? v : '');
+const pct1  = v => (v===null ? '' : v.toFixed(1));
+
+function buildReport(year, month) {
+  const P = REPORT_PROGRAMS.map(p => ({...p, rows: reportRowsOf(p, year, month)}));
+  const tsv = {};   // 복사 버튼용 데이터
+
+  let h = `<div class="rep-head">
+    <h2>📊 ${year}년 ${month}월 본원 운영 현황 보고서</h2>
+    <p>각 표 우측의 <b>📋 복사</b> 버튼을 누르면 해당 표가 클립보드에 복사됩니다.<br>
+    한컴/엑셀 양식의 첫 번째 데이터 셀에 붙여넣기(Ctrl+V) 하세요. (머리글 줄은 빼고 복사됩니다)</p>
+  </div>`;
+
+  h += repTable1(P, year, month, tsv);
+  h += repTable2(P, tsv);
+  h += repTable3(P, tsv);
+  h += repTable4(P, tsv);
+  h += repNotes(P);
+
+  window._repTSV = tsv;
+  return h;
+}
+
+// ── 표 1. 운영 현황 (총괄 집계 양식 · 7분류) ──────────────
+function repTable1(P, year, month, tsv) {
+  const body = [];
+  const sum = {}; CATS7.forEach(k=>sum[k]=0);
+  let sumAll = 0;
+  let rowsHtml = '';
+  let lastGrp = -1;
+
+  P.forEach(p => {
+    const isNew = p.grp !== lastGrp;
+    if (isNew) lastGrp = p.grp;
+    const span = P.filter(x=>x.grp===p.grp).length;
+
+    const has = p.rows !== null;
+    const c = has ? counts7Of(p) : null;
+    const total = c ? CATS7.reduce((a,k)=>a+c[k],0) : 0;
+    if (c) { CATS7.forEach(k=>sum[k]+=c[k]); sumAll += total; }
+
+    rowsHtml += `<tr class="${has?'':'muted'}">`;
+    if (isNew) rowsHtml += `<td class="focus" rowspan="${span}">${REPORT_GROUPS[p.grp]}</td>`;
+    rowsHtml += `<td class="no">${p.no}</td><td class="nm">${escHtml(p.name)}</td>`;
+    rowsHtml += `<td>${total>0?'O':''}</td>`;
+    CATS7.forEach(k => rowsHtml += `<td class="v">${c?blank(c[k]):''}</td>`);
+    rowsHtml += `<td class="sub">${blank(total)}</td></tr>`;
+
+    body.push([total>0?'O':''].concat(CATS7.map(k=>c?blank(c[k]):'')).concat([blank(total)]));
+  });
+
+  tsv.t1 = body;
+  return `<div class="rep-sec">
+    <div class="rep-sec-title">
+      <h3>📋 1. 운영 현황 <small>(총괄 집계 양식 · ${year}년 ${month}월 · 단위: 명/건)</small></h3>
+      <button class="btn-copy" onclick="copyRep('t1',this)">📋 복사</button>
+    </div>
+    <div class="scroll-x"><table class="rep">
+      <thead>
+        <tr>
+          <th rowspan="2" style="min-width:86px">운영중점</th>
+          <th rowspan="2" colspan="2" style="min-width:240px">프로그램명</th>
+          <th rowspan="2">운영<br>본원</th>
+          <th colspan="8">체험인원 (명) 및 대여수량 (건)</th>
+        </tr>
+        <tr class="sub">${CATS7.map(k=>`<th>${k}</th>`).join('')}<th>소계</th></tr>
+      </thead>
+      <tbody>${rowsHtml}
+        <tr class="sum"><td colspan="4">합계</td>
+          ${CATS7.map(k=>`<td>${sum[k]}</td>`).join('')}
+          <td>${sumAll}</td></tr>
+      </tbody>
+    </table></div>
+  </div>`;
+}
+
+// ── 표 2. 참여자 현황 (거제 양식 · 6분류) ─────────────────
+function repTable2(P, tsv) {
+  const list = P.filter(p => SURVEY_ROWS.indexOf(p.no) !== -1);
+  const body = [];
+  const sum = {}; CATS6.forEach(c=>sum[c.label]=0);
+  let sumAll = 0;
+  let rowsHtml = '';
+
+  list.forEach(p => {
+    const has = p.rows !== null;
+    const c7 = has ? counts7Of(p) : null;
+    const vals = CATS6.map(c => c7 ? c.from.reduce((a,k)=>a+c7[k],0) : null);
+    const total = c7 ? vals.reduce((a,b)=>a+b,0) : 0;
+    if (c7) { CATS6.forEach((c,i)=>sum[c.label]+=vals[i]); sumAll += total; }
+
+    rowsHtml += `<tr class="${has?'':'muted'}">
+      <td class="no">${p.no}</td><td class="nm">${escHtml(p.name)}</td>
+      ${vals.map(v=>`<td class="v">${v===null?'':blank(v)}</td>`).join('')}
+      <td class="sub">${blank(total)}</td></tr>`;
+    body.push(vals.map(v=>v===null?'':blank(v)).concat([blank(total)]));
+  });
+
+  tsv.t2 = body;
+  return `<div class="rep-sec">
+    <div class="rep-sec-title">
+      <h3>📋 2. 참여자 현황 <small>(거제 양식 · 단위: 명)</small></h3>
+      <button class="btn-copy" onclick="copyRep('t2',this)">📋 복사</button>
+    </div>
+    <div class="scroll-x"><table class="rep">
+      <thead>
+        <tr><th rowspan="2" colspan="2" style="min-width:280px">운영 프로그램</th>
+            <th colspan="7">만족도 조사 참여자 수</th></tr>
+        <tr class="sub">${CATS6.map(c=>`<th>${c.label}</th>`).join('')}<th>소계</th></tr>
+      </thead>
+      <tbody>${rowsHtml}
+        <tr class="sum"><td colspan="2">참여자 수(명)</td>
+          ${CATS6.map(c=>`<td>${sum[c.label]}</td>`).join('')}
+          <td>${sumAll}</td></tr>
+      </tbody>
+    </table></div>
+  </div>`;
+}
+
+// ── 표 3. 만족도 통계 (문항1~5 × 5단계) ───────────────────
+function repTable3(P, tsv) {
+  const list = P.filter(p => SURVEY_ROWS.indexOf(p.no) !== -1);
+  const body = [];
+  let rowsHtml = '';
+
+  list.forEach(p => {
+    const has = p.rows !== null;
+    let cells = '';
+    const line = [];
+    for (let n = 1; n <= 5; n++) {
+      // 문항5는 강사 문항이 있는 설문에만 존재한다 (자유관람·교구대여는 빈칸)
+      const usable = has && (n <= Q_PROGRAM || p.hasInstructor);
+      const st = usable ? itemStat(p.rows, n) : null;
+      [5,4,3,2,1].forEach(s => {
+        const v = st ? blank(st.d[s]) : '';
+        cells += `<td class="v">${v}</td>`;
+        line.push(v);
+      });
+      const tot = st ? blank(st.total) : '';
+      const sat = st && st.total ? st.sat : '';
+      cells += `<td class="sub">${tot}</td><td class="sat">${sat}</td>`;
+      line.push(tot, sat);
+    }
+    rowsHtml += `<tr class="${has?'':'muted'}"><td class="no">${p.no}</td><td class="nm">${escHtml(p.name)}</td>${cells}</tr>`;
+    body.push(line);
+  });
+
+  const qHead = [], subHead = [];
+  for (let n = 1; n <= 5; n++) {
+    qHead.push(`<th colspan="7">[프로그램 운영${n===5?'(강사만족도)':''}] 문항${n}</th>`);
+    subHead.push('<th>매우<br>만족</th><th>만족</th><th>보통</th><th>불만족</th><th>매우<br>불만족</th><th>합계</th><th>만족<br>이상</th>');
+  }
+
+  tsv.t3 = body;
+  return `<div class="rep-sec">
+    <div class="rep-sec-title">
+      <h3>📋 3. 만족도 통계 <small>(단위: 명)</small></h3>
+      <button class="btn-copy" onclick="copyRep('t3',this)">📋 복사</button>
+    </div>
+    <div class="scroll-x"><table class="rep">
+      <thead>
+        <tr><th rowspan="2" colspan="2" style="min-width:240px">프로그램명</th>${qHead.join('')}</tr>
+        <tr class="sub">${subHead.join('')}</tr>
+      </thead>
+      <tbody>${rowsHtml}</tbody>
+    </table></div>
+  </div>`;
+}
+
+// ── 표 4. 만족도 결과 (%) ─────────────────────────────────
+function repTable4(P, tsv) {
+  const list = P.filter(p => SURVEY_ROWS.indexOf(p.no) !== -1);
+  const body = [];
+  let rowsHtml = '';
+
+  list.forEach(p => {
+    const has = p.rows !== null;
+    const n = has ? p.rows.length : 0;
+
+    // 프로그램 운영 만족도 — 문항1~4
+    let progCells = '<td></td><td></td><td></td><td class="pct"></td>';
+    let progLine = ['','','',''];
+    if (has) {
+      let satSum = 0;
+      for (let q = 1; q <= Q_PROGRAM; q++) satSum += itemStat(p.rows, q).sat;
+      const rate = n ? satSum / (n * Q_PROGRAM) * 100 : null;
+      progCells = `<td class="v">${n}</td><td class="v">${Q_PROGRAM}</td><td class="sub">${satSum}</td><td class="pct">${pct1(rate)}</td>`;
+      progLine = [n, Q_PROGRAM, satSum, pct1(rate)];
+    }
+
+    // 강사 만족도 — 문항5
+    let instCells = '<td></td><td></td><td></td><td class="pct"></td>';
+    let instLine = ['','','',''];
+    if (has && p.hasInstructor) {
+      const satSum = itemStat(p.rows, 5).sat;
+      const rate = n ? satSum / (n * Q_INSTR) * 100 : null;
+      instCells = `<td class="v">${n}</td><td class="v">${Q_INSTR}</td><td class="sub">${satSum}</td><td class="pct">${pct1(rate)}</td>`;
+      instLine = [n, Q_INSTR, satSum, pct1(rate)];
+    }
+
+    rowsHtml += `<tr class="${has?'':'muted'}"><td class="no">${p.no}</td><td class="nm">${escHtml(p.name)}</td>${progCells}${instCells}</tr>`;
+    body.push(progLine.concat(instLine));
+  });
+
+  tsv.t4 = body;
+  return `<div class="rep-sec">
+    <div class="rep-sec-title">
+      <h3>📋 4. 만족도 결과</h3>
+      <button class="btn-copy" onclick="copyRep('t4',this)">📋 복사</button>
+    </div>
+    <div class="scroll-x"><table class="rep">
+      <thead>
+        <tr><th rowspan="2" colspan="2" style="min-width:240px">프로그램명</th>
+            <th colspan="4">프로그램 운영 만족도 (문항1~문항4)</th>
+            <th colspan="4">강사 만족도 (문항5)</th></tr>
+        <tr class="sub">
+          <th>설문 응답자 수</th><th>설문 문항 수</th><th>만족이상<br>답변 수의 합</th><th>만족도(%)</th>
+          <th>설문 응답자 수</th><th>설문 문항 수</th><th>문항5<br>만족이상 답변 수</th><th>만족도(%)</th>
+        </tr>
+      </thead>
+      <tbody>${rowsHtml}</tbody>
+    </table></div>
+    <div class="rep-formula">※ 만족도(%) = [ '만족' 이상 답변 수의 합 / (설문 응답자 수 × 설문 문항 수) ] × 100</div>
+  </div>`;
+}
+
+// ── 참고사항 ──────────────────────────────────────────────
+function repNotes(P) {
+  const noSrc = P.filter(p=>p.src===null).map(p=>p.no+' '+p.name).join(', ');
+  return `<div class="rep-notes">
+    <span class="t">💡 참고사항</span>
+    · 본 집계는 <b>만족도 설문 응답수</b> 기준입니다 (실제 체험인원과 다를 수 있음)<br>
+    · 표 1 (운영 현황): 7분류 — 유 / 초 / 중 / 고 / 교원 / 보호자 / 일반<br>
+    · 표 2 (참여자 현황): 거제 양식 6분류 — '유아'와 '일반'을 '그 외'로 통합<br>
+    · 캠프는 응답자 구분 컬럼이 없어 <b>캠프 종류명의 학교급</b>으로 분류합니다 (초등학생…→초, 중학생…→중, 고등학생…→고)<br>
+    · 1-(03) 학생체험수학캠프 = 초등학생 체험수학캠프 + 중학생 체험수학캠프 + 고등학생 인공지능수학캠프<br>
+    · 1-(04) 학생SW체험캠프 = 초등학생 SW캠프<br>
+    · 자유관람·교구대여는 강사 문항이 없어 <b>강사 만족도(문항5)는 빈칸</b>입니다<br>
+    · 학교·가족 프로그램의 과거 '학생' 단독 응답은 '초등학생'으로 분류됩니다<br>
+    · 데이터 원천이 없어 양식만 표시하는 행: ${escHtml(noSrc)}<br>
+    · 복사 버튼은 <b>머리글과 합계 줄을 뺀 데이터 행만</b> 탭 구분(TSV)으로 복사합니다
+  </div>`;
+}
+
+// ── 복사 ──────────────────────────────────────────────────
+function copyRep(key, btn) {
+  const rows = (window._repTSV||{})[key];
+  if (!rows) return;
+  const text = rows.map(r=>r.join('\t')).join('\n');
+  const done = ()=>{
+    const old = btn.textContent;
+    btn.textContent = '✅ 복사됨';
+    btn.classList.add('done');
+    setTimeout(()=>{ btn.textContent = old; btn.classList.remove('done'); }, 1500);
+  };
+  // Apps Script는 샌드박스 iframe이라 클립보드 API가 막힐 수 있다 — execCommand로 대체한다.
+  const fallback = ()=>{
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position='fixed'; ta.style.left='-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); done(); }
+    catch(e) { alert('복사에 실패했습니다. 표를 직접 선택해 복사해 주세요.'); }
+    document.body.removeChild(ta);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(fallback);
+  } else fallback();
+}
+
+// ══════════════════════════════════════════
+// 초기화
+// ══════════════════════════════════════════
+document.getElementById('selYear').addEventListener('change', ()=>updateMonths(true));
+document.getElementById('selMonth').addEventListener('change', render);
+
+(function init(){
+  buildTabBar();
+  applyImages();
+  loadAll();
+})();
+</script>
+</body>
+</html>
