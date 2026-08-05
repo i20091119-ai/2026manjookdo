@@ -29,6 +29,7 @@ test/
   score.test.js     만족도 응답 표현 인식
   report.test.js    월말 집계 4개 표
   pipeline.test.js  시트 원본 → data.json → 화면 (컬럼 매핑 검증)
+  crypto.test.js    빌드 암호화 → 화면 복호화 왕복
 docs/
   유지보수_가이드.md  비개발자용 상세 수정 가이드
 legacy/
@@ -63,7 +64,9 @@ CLAUDE.md           작업 시 참고할 프로젝트 컨텍스트
 
 1. **구글 서비스 계정**을 만들고 키 JSON을 받는다
 2. 설문 응답 시트 4개를 그 서비스 계정 이메일에 **뷰어**로 공유한다
-3. 저장소 Settings → Secrets → Actions 에 `GOOGLE_SERVICE_ACCOUNT_JSON` 등록
+3. 저장소 Settings → Secrets → Actions 에 두 개 등록
+   - `GOOGLE_SERVICE_ACCOUNT_JSON` — 서비스 계정 키 JSON 전체
+   - `DASHBOARD_PASSWORD` — 대시보드 비밀번호 (`data.json` 암호화에 쓰임)
 4. 저장소 Settings → Pages → Source 를 **GitHub Actions** 로 설정
 5. Actions 탭 → **데이터 갱신 & 배포** → Run workflow
 
@@ -83,29 +86,42 @@ CLAUDE.md           작업 시 참고할 프로젝트 컨텍스트
 node test/score.test.js
 node test/report.test.js
 node test/pipeline.test.js
+node test/crypto.test.js
 ```
 
 로컬에서 실제 데이터로 확인하려면:
 
 ```bash
-GOOGLE_SERVICE_ACCOUNT_JSON="$(cat key.json)" node scripts/fetch-sheets.mjs
+GOOGLE_SERVICE_ACCOUNT_JSON="$(cat key.json)" DASHBOARD_PASSWORD=3141 \
+  node scripts/fetch-sheets.mjs
 cd site && python3 -m http.server 8000    # http://localhost:8000
 ```
 
-## ⚠️ 공개 범위
+> `file://` 로 열면 복호화(Web Crypto)가 동작하지 않습니다.
+> 반드시 `http://localhost` 로 띄우세요.
 
-**GitHub Pages 사이트는 URL을 아는 누구나 볼 수 있다.**
-무료 요금제에서 Pages는 공개이고, 정적 사이트라 비밀번호를 걸어도 의미가 없어
-로그인 화면을 없앴다. `data.json`도 그대로 내려받을 수 있다.
+## 🔐 공개 범위와 잠금
 
-주관식 응답 원문을 공개하고 싶지 않으면
-`scripts/fetch-sheets.mjs` 위쪽의
+GitHub Pages 사이트 자체는 URL을 아는 누구나 열 수 있다(무료 요금제 Pages는 공개).
+그래서 **`data.json` 을 통째로 암호화**해서 올린다.
 
-```javascript
-const INCLUDE_COMMENTS = true;   // → false
+```
+AES-256-GCM · 키는 PBKDF2-SHA256 60만 회로 DASHBOARD_PASSWORD 에서 유도
 ```
 
-를 `false`로 바꾼다. 통계·월말 집계는 그대로 나오고 '주관식 응답' 절만 빈다.
+비밀번호 없이 `data.json` 을 받으면 의미 없는 바이트 덩어리다.
+브라우저가 잠금 화면에서 받은 비밀번호로 풀어서 표를 그린다.
+비밀번호는 GitHub Secret에만 있고 코드에는 없다.
 
-원본 스프레드시트 자체는 공개되지 않는다 — 서비스 계정만 읽고, 사이트에는
-`data.json`에 담은 것만 나간다.
+- ✅ URL을 우연히 알게 된 사람 → 아무것도 못 본다
+- ✅ `data.json` 을 직접 받아 가는 사람 → 암호문만 얻는다
+- ⚠️ 4자리 비밀번호는 경우의 수가 1만 가지라, **작정하고 전부 대입하면 뚫린다.**
+  `DASHBOARD_PASSWORD` 를 8자 이상으로 바꾸면 현실적으로 불가능해진다
+  (그 경우 `site/index.html` 의 `maxlength="4"` 와 점 표시도 함께 수정).
+
+주관식 응답 원문 자체를 아예 내보내지 않으려면
+`scripts/fetch-sheets.mjs` 의 `INCLUDE_COMMENTS` 를 `false` 로 바꾼다.
+통계·월말 집계는 그대로 나오고 '주관식 응답' 절만 빈다.
+
+원본 스프레드시트는 어느 쪽이든 공개되지 않는다 — 서비스 계정만 읽고,
+`SOURCES` 에 없는 컬럼은 `data.json` 에 실리지도 않는다.

@@ -6,7 +6,8 @@
 # ⚠ 사전 준비 (한 번만)
 #   1) 저장소 Settings → Pages → Source 를 "GitHub Actions" 로 설정
 #   2) 저장소 Settings → Secrets and variables → Actions 에
-#      GOOGLE_SERVICE_ACCOUNT_JSON 등록 (서비스 계정 키 JSON 전체)
+#      GOOGLE_SERVICE_ACCOUNT_JSON  서비스 계정 키 JSON 전체
+#      DASHBOARD_PASSWORD           대시보드 비밀번호 (data.json 암호화에 쓰임)
 #   3) 구글 시트 4개를 그 서비스 계정 이메일에 "뷰어"로 공유
 #   자세한 절차는 docs/유지보수_가이드.md 의 「2. 배포」 참고.
 
@@ -61,10 +62,12 @@ jobs:
           node test/score.test.js
           node test/report.test.js
           node test/pipeline.test.js
+          node test/crypto.test.js
 
-      - name: 구글 시트 읽기 → site/data.json
+      - name: 구글 시트 읽기 → site/data.json (암호화)
         env:
           GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+          DASHBOARD_PASSWORD: ${{ secrets.DASHBOARD_PASSWORD }}
         run: node scripts/fetch-sheets.mjs
 
       - uses: actions/configure-pages@v5

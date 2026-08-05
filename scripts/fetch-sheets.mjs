@@ -80,9 +80,19 @@ const SOURCES = {
 };
 
 // 주관식 원문을 data.json에 담을지.
-// 사이트가 공개(GitHub Pages)이므로, 응답 원문을 내보내고 싶지 않으면 false로 바꾼다.
+// 응답 원문을 내보내고 싶지 않으면 false로 바꾼다.
 // false로 두면 통계·월말 집계는 그대로 나오고 '주관식 응답' 절만 비게 된다.
 const INCLUDE_COMMENTS = true;
+
+// ── 암호화 설정 ──────────────────────────────────────────
+// GitHub Pages는 공개라 data.json이 그대로 내려받힌다.
+// 그래서 통계 내용을 통째로 암호화해서 올린다.
+// 비밀번호 없이 받으면 의미 없는 바이트 덩어리만 얻는다.
+//
+// ⚠ 비밀번호가 짧으면 (예: 4자리) 파일을 받아서 전부 대입해 볼 수 있다.
+//   PBKDF2 반복을 높여 한 번 시도에 시간이 걸리게 해 두었지만,
+//   작정한 상대를 막으려면 비밀번호를 길게 쓰는 게 맞다.
+const KDF_ITERATIONS = 600000;   // OWASP 권장치. 브라우저에서 0.5~2초 걸린다.
 
 // ── 공통 변환 (Apps Script 판과 동일한 규칙) ─────────────
 
@@ -166,6 +176,33 @@ export function transform(values, src, includeComments = true) {
   return { years: [...yearSet].sort((a, b) => a - b), rows };
 }
 
+// ── 암호화 ───────────────────────────────────────────────
+// AES-256-GCM + PBKDF2(SHA-256). 브라우저 Web Crypto와 호환되는 조합이다.
+// 암호문 뒤에 인증 태그를 붙여 두어야 crypto.subtle.decrypt 가 그대로 받는다.
+export function encryptPayload(obj, password, iterations = KDF_ITERATIONS) {
+  const salt = crypto.randomBytes(16);
+  const iv   = crypto.randomBytes(12);
+  const key  = crypto.pbkdf2Sync(password, salt, iterations, 32, 'sha256');
+
+  const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+  const body = Buffer.concat([
+    cipher.update(Buffer.from(JSON.stringify(obj), 'utf8')),
+    cipher.final(),
+  ]);
+
+  return {
+    encrypted: true,
+    v: 1,
+    kdf: 'PBKDF2-SHA256',
+    cipher: 'AES-GCM',
+    iterations,
+    salt: salt.toString('base64'),
+    iv:   iv.toString('base64'),
+    // 암호문 || 인증 태그(16바이트)
+    ciphertext: Buffer.concat([body, cipher.getAuthTag()]).toString('base64'),
+  };
+}
+
 // ── 구글 인증 (서비스 계정 JWT → 액세스 토큰) ────────────
 
 async function getAccessToken(sa) {
@@ -237,6 +274,17 @@ async function main() {
     process.exit(1);
   }
 
+  // 비밀번호가 없으면 아예 만들지 않는다.
+  // 설정을 빠뜨렸다고 통계가 평문으로 공개되는 일은 없어야 한다.
+  const password = process.env.DASHBOARD_PASSWORD;
+  if (!password) {
+    console.error('❌ DASHBOARD_PASSWORD 환경변수가 없습니다.');
+    console.error('   저장소 Settings → Secrets and variables → Actions 에');
+    console.error('   DASHBOARD_PASSWORD 를 등록하세요.');
+    console.error('   (평문으로 공개되는 사고를 막으려고 일부러 실패시킵니다)');
+    process.exit(1);
+  }
+
   let sa;
   try {
     sa = JSON.parse(raw);
@@ -270,11 +318,22 @@ async function main() {
     process.exit(1);
   }
 
+  // 갱신 시각만 평문으로 남긴다 — 잠금 화면에서 보여 주려고.
+  // 통계 내용(free/educ/prog/camp)은 전부 암호문 안으로 들어간다.
+  const generatedAt = out.generatedAt;
+  const blob = encryptPayload(out, password);
+  blob.generatedAt = generatedAt;
+
   await fs.mkdir(path.dirname(OUT), { recursive: true });
-  await fs.writeFile(OUT, JSON.stringify(out), 'utf8');
+  await fs.writeFile(OUT, JSON.stringify(blob), 'utf8');
 
   const kb = (await fs.stat(OUT)).size / 1024;
-  console.log(`\n✅ site/data.json 생성 (${kb.toFixed(1)} KB)`);
+  console.log(`\n✅ site/data.json 생성 (${kb.toFixed(1)} KB · 암호화됨)`);
+  console.log(`   PBKDF2 ${KDF_ITERATIONS.toLocaleString()}회 + AES-256-GCM`);
+  if (password.length < 8) {
+    console.log(`   ⚠ 비밀번호가 ${password.length}자입니다. 짧은 비밀번호는 전부 대입해 뚫을 수 있습니다.`);
+    console.log('     우연한 열람은 막지만, 작정한 상대까지 막으려면 8자 이상을 쓰세요.');
+  }
   if (!INCLUDE_COMMENTS) console.log('   ※ INCLUDE_COMMENTS=false — 주관식 원문은 빠졌습니다');
 }
 

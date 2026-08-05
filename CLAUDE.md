@@ -23,7 +23,10 @@ test/                 node로 돌리는 순수 로직 테스트
 legacy/apps-script/   예전 Apps Script 판. 참고용, 더 이상 안 씀.
 ```
 
-서버가 없다. 인증도 없다 — Pages가 공개라 클라이언트 비밀번호는 무의미해서 걷어냈다.
+서버가 없다. Pages가 공개라 클라이언트 비밀번호는 무의미하므로,
+대신 **`data.json` 자체를 암호화**한다 (AES-256-GCM, 키는 PBKDF2-SHA256 60만 회).
+빌드 쪽 `encryptPayload()` 와 화면 쪽 `decryptPayload()` 가 짝이다 —
+한쪽만 고치면 `test/crypto.test.js` 가 잡는다.
 `fetch-sheets.mjs`가 `parseTs` / `scoreToNum` / `toScores` / `cell`을 갖고 있고,
 `site/index.html`은 이미 점수로 변환된 데이터를 받아 집계만 한다.
 
@@ -35,8 +38,8 @@ legacy/apps-script/   예전 Apps Script 판. 참고용, 더 이상 안 씀.
 테스트 → 시트 읽기 → Pages 배포까지 한다.
 데이터만 새로 받고 싶으면 Actions 탭에서 수동 실행한다.
 
-사전 준비(한 번만): 구글 서비스 계정 키를 `GOOGLE_SERVICE_ACCOUNT_JSON` 시크릿에 넣고,
-시트 4개를 그 계정에 뷰어로 공유하고, Settings → Pages → Source를 GitHub Actions로 둔다.
+사전 준비(한 번만): 시크릿 두 개(`GOOGLE_SERVICE_ACCOUNT_JSON`, `DASHBOARD_PASSWORD`)를 넣고,
+시트 4개를 서비스 계정에 뷰어로 공유하고, Settings → Pages → Source를 GitHub Actions로 둔다.
 
 ## 데이터 소스
 
@@ -147,9 +150,15 @@ CDN 없이 단일 파일로 유지한다. `pipeline.test.js`가 이걸 검사한
 
 ## 공개 범위
 
-**Pages 사이트는 URL을 아는 누구나 볼 수 있다.** 무료 요금제 Pages는 공개이고,
-정적 사이트라 클라이언트 비밀번호는 눈속임일 뿐이라 게이트를 제거했다.
-`data.json`도 그대로 내려받힌다.
+Pages 사이트 자체는 URL을 아는 누구나 열 수 있다. 그래서 `data.json` 을 암호화한다.
+비밀번호는 `DASHBOARD_PASSWORD` 시크릿에만 있고 코드에는 없다 —
+`crypto.test.js` 가 `site/index.html` 에 비밀번호가 섞여 들어갔는지 검사한다.
+
+**4자리는 1만 가지라 작정하면 대입으로 뚫린다.** 우연한 열람은 확실히 막지만
+그 이상을 원하면 비밀번호를 길게 써야 한다. 이 트레이드오프는 사용자가 알고 고른 것이다.
+
+`DASHBOARD_PASSWORD` 가 없으면 빌드가 실패한다 —
+설정 누락으로 통계가 평문 공개되는 사고를 막기 위해 일부러 그렇게 뒀다.
 
 주관식 원문을 빼려면 `scripts/fetch-sheets.mjs`의 `INCLUDE_COMMENTS`를 `false`로.
 통계·월말 집계는 그대로 나오고 '주관식 응답' 절만 빈다.
@@ -167,6 +176,7 @@ Apps Script 없이 node로만 돈다. Actions가 배포 전에 자동으로 돌�
 node test/score.test.js     # scoreToNum() — 4세대 표현 인식
 node test/report.test.js    # 월말 집계 4개 표 — 2026.8 실제 수치 기준
 node test/pipeline.test.js  # 시트 원본 → data.json → 화면 (컬럼 매핑)
+node test/crypto.test.js    # 빌드 암호화 → 화면 복호화 왕복
 ```
 
 `pipeline.test.js`가 제일 중요하다. `fetch-sheets.mjs`의 `SOURCES` map 함수를
@@ -180,8 +190,9 @@ node test/pipeline.test.js  # 시트 원본 → data.json → 화면 (컬럼 매
 
 로컬에서 실제 데이터로 확인:
 ```bash
-GOOGLE_SERVICE_ACCOUNT_JSON="$(cat key.json)" node scripts/fetch-sheets.mjs
-cd site && python3 -m http.server 8000
+GOOGLE_SERVICE_ACCOUNT_JSON="$(cat key.json)" DASHBOARD_PASSWORD=3141 \
+  node scripts/fetch-sheets.mjs
+cd site && python3 -m http.server 8000   # file:// 로 열면 Web Crypto가 안 돈다
 ```
 
 **브라우저에서** — 콘솔에 `DATA`가 그대로 떠 있다.

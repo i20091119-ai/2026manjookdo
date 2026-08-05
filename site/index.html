@@ -8,6 +8,30 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Apple SD Gothic Neo','Noto Sans KR',sans-serif;font-size:14px;background:#f0f2f5;color:#1a1a1a}
 
+/* ── 잠금 화면 ── */
+#gate{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:linear-gradient(160deg,#0a1628 0%,#1a3a6e 60%,#0d2244 100%)}
+.gate-box{background:rgba(255,255,255,0.97);border-radius:16px;padding:36px 34px;width:340px;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,0.4)}
+.gate-logo{max-width:190px;width:100%;margin:0 auto 18px;display:block}
+.gate-title{font-size:15px;font-weight:700;color:#1a2a4a;margin-bottom:2px}
+.gate-sub{font-size:12px;color:#888;margin-bottom:22px}
+.gate-dots{display:flex;justify-content:center;gap:10px;margin-bottom:18px}
+.dot{width:13px;height:13px;border-radius:50%;border:2px solid #ccc;background:#fff;transition:all .15s}
+.dot.filled{background:#1a3a6e;border-color:#1a3a6e}
+.dot.error{background:#E24B4A;border-color:#E24B4A}
+.gate-input-wrap{position:relative;margin-bottom:10px}
+.gate-input-wrap input{width:100%;padding:12px 40px 12px 16px;border:1.5px solid #ddd;border-radius:8px;font-size:22px;letter-spacing:10px;text-align:center;background:#fafafa;color:#1a1a1a}
+.gate-input-wrap input:focus{outline:none;border-color:#1a3a6e;background:#fff}
+.gate-input-wrap input.error{border-color:#E24B4A;animation:shake .3s}
+.gate-input-wrap input:disabled{background:#f0f0f0;color:#aaa}
+.eye-btn{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:17px;color:#aaa}
+.gate-btn{width:100%;padding:12px;border:none;border-radius:8px;background:#1a3a6e;color:#fff;font-size:15px;font-weight:600;cursor:pointer;margin-top:6px}
+.gate-btn:hover{background:#0d2244}
+.gate-btn:disabled{background:#8b9bb5;cursor:default}
+.gate-error{font-size:12px;color:#E24B4A;min-height:17px;margin-bottom:4px;line-height:1.5}
+.gate-foot{font-size:11px;color:#aaa;margin-top:14px;line-height:1.6}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+#app{display:none}
+
 /* ── 헤더 ── */
 header{background:#1a3a6e;padding:0 20px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.25)}
 .header-top{display:flex;align-items:center;gap:12px;padding:10px 0 6px}
@@ -124,6 +148,28 @@ table.rep td.v{color:#1a3a6e;font-variant-numeric:tabular-nums}
 </head>
 <body>
 
+<!-- ── 잠금 화면 ── -->
+<div id="gate">
+  <div class="gate-box">
+    <img class="gate-logo" id="gateLogoImg" src="logo.png" alt="경남수학문화관"
+         onerror="this.style.display='none'">
+    <div class="gate-title">경남수학문화관</div>
+    <div class="gate-sub">운영 만족도 통합 대시보드</div>
+    <div class="gate-dots">
+      <div class="dot" id="d0"></div><div class="dot" id="d1"></div>
+      <div class="dot" id="d2"></div><div class="dot" id="d3"></div>
+    </div>
+    <div class="gate-input-wrap">
+      <input type="password" id="pwInput" maxlength="4" placeholder="&bull;&bull;&bull;&bull;"
+        oninput="onPwInput()" onkeydown="onPwKey(event)" autocomplete="off" inputmode="numeric">
+      <button class="eye-btn" onclick="toggleEye()" id="eyeBtn">&#128065;</button>
+    </div>
+    <div class="gate-error" id="gateError"></div>
+    <button class="gate-btn" id="gateBtn" onclick="unlock()">확인</button>
+    <div class="gate-foot" id="gateFoot"></div>
+  </div>
+</div>
+
 <!-- ── 앱 본체 ── -->
 <div id="app">
   <header>
@@ -135,6 +181,7 @@ table.rep td.v{color:#1a3a6e;font-variant-numeric:tabular-nums}
         <select id="selYear"></select>
         <select id="selMonth"></select>
         <button class="btn-refresh" onclick="loadCurrent()">↻ 새로고침</button>
+        <button class="btn-refresh" onclick="lock()">🔒 잠그기</button>
       </div>
     </div>
     <div class="tab-bar" id="tabBar"></div>
@@ -264,54 +311,220 @@ let currentTab = 0;
 let DATA = { free:null, educ:null, prog:null, camp:null };
 const SRC_KEYS = ['free','educ','prog','camp'];
 let GENERATED_AT = null;
+let BLOB = null;          // 받아 온 data.json (암호문 상태)
+let PASSWORD = null;      // 복호화에 성공한 비밀번호. 새로고침할 때 다시 쓴다.
+let busy = false;
+const PW_KEY = 'gnmath_pw';
+
+// ══════════════════════════════════════════
+// 복호화
+//
+// data.json 은 통계 내용이 통째로 암호화되어 있다.
+// 비밀번호 없이 받으면 의미 없는 바이트 덩어리다.
+// AES-256-GCM + PBKDF2(SHA-256) — 빌드 쪽 fetch-sheets.mjs 와 같은 조합.
+// ══════════════════════════════════════════
+function b64ToBytes(b64) {
+  const bin = atob(b64);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+async function decryptPayload(blob, password) {
+  const baseKey = await crypto.subtle.importKey(
+    'raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveKey']);
+  const key = await crypto.subtle.deriveKey(
+    { name:'PBKDF2', salt: b64ToBytes(blob.salt), iterations: blob.iterations, hash:'SHA-256' },
+    baseKey, { name:'AES-GCM', length:256 }, false, ['decrypt']);
+  // 비밀번호가 틀리면 인증 태그 검증에서 예외가 난다 — 그게 '틀림' 신호다
+  const plain = await crypto.subtle.decrypt(
+    { name:'AES-GCM', iv: b64ToBytes(blob.iv) }, key, b64ToBytes(blob.ciphertext));
+  return JSON.parse(new TextDecoder().decode(plain));
+}
+
+// ══════════════════════════════════════════
+// 잠금 화면
+// ══════════════════════════════════════════
+function onPwInput() {
+  const val = document.getElementById('pwInput').value;
+  for (let i=0;i<4;i++) {
+    const d = document.getElementById('d'+i);
+    d.classList.toggle('filled', i<val.length);
+    d.classList.remove('error');
+  }
+  document.getElementById('gateError').textContent = '';
+  document.getElementById('pwInput').classList.remove('error');
+  if (val.length === 4) setTimeout(unlock, 80);
+}
+function onPwKey(e) { if (e.key==='Enter') unlock(); }
+function toggleEye() {
+  const inp = document.getElementById('pwInput');
+  const hidden = inp.type==='password';
+  inp.type = hidden ? 'text' : 'password';
+  document.getElementById('eyeBtn').textContent = hidden ? '\uD83D\uDE48' : '\uD83D\uDC41';
+}
+
+function setGateBusy(on, msg) {
+  busy = on;
+  const btn = document.getElementById('gateBtn');
+  const inp = document.getElementById('pwInput');
+  btn.disabled = on;
+  inp.disabled = on;
+  btn.textContent = on ? (msg || '여는 중…') : '확인';
+}
+
+function gateFail(msg) {
+  document.getElementById('gateError').textContent = msg || '비밀번호가 올바르지 않습니다.';
+  const inp = document.getElementById('pwInput');
+  inp.classList.add('error');
+  for(let i=0;i<4;i++){const d=document.getElementById('d'+i);d.classList.remove('filled');d.classList.add('error');}
+  setTimeout(()=>{
+    inp.value=''; inp.classList.remove('error');
+    for(let i=0;i<4;i++){document.getElementById('d'+i).classList.remove('filled','error');}
+    inp.focus();
+  }, 700);
+}
+
+async function unlock(silentPw) {
+  if (busy) return;
+  const inp = document.getElementById('pwInput');
+  const pw = silentPw != null ? silentPw : inp.value;
+  if (!silentPw && pw.length < 4) {
+    document.getElementById('gateError').textContent = '4자리를 모두 입력하세요.';
+    return;
+  }
+  if (!BLOB) { document.getElementById('gateError').textContent = '데이터를 아직 못 받았습니다.'; return; }
+
+  // PBKDF2 60만 회는 기기에 따라 0.5~2초 걸린다. 그 사이 화면이 멈춘 것처럼 보이지 않게 한다.
+  setGateBusy(true);
+  await new Promise(r => setTimeout(r, 30));
+
+  try {
+    const payload = await decryptPayload(BLOB, pw);
+    PASSWORD = pw;
+    sessionStorage.setItem(PW_KEY, pw);
+    applyPayload(payload);
+    setGateBusy(false);
+    const gate = document.getElementById('gate');
+    gate.style.transition = 'opacity .35s';
+    gate.style.opacity = '0';
+    setTimeout(()=>{ gate.style.display='none'; }, 350);
+    document.getElementById('app').style.display = 'block';
+    populateSelects();
+    render();
+  } catch (e) {
+    setGateBusy(false);
+    sessionStorage.removeItem(PW_KEY);
+    if (!silentPw) gateFail();
+    else inp.focus();
+  }
+}
 
 // ══════════════════════════════════════════
 // 데이터 로드
 //
-// 서버가 없다. GitHub Actions가 구글 시트를 읽어 만들어 둔
-// data.json 을 그대로 받아서 쓴다.
+// 서버가 없다. GitHub Actions가 만들어 둔 data.json 을 받아서 쓴다.
 // ══════════════════════════════════════════
+function applyPayload(res) {
+  DATA.free = res.free || {years:[],rows:[]};
+  DATA.educ = res.educ || {years:[],rows:[]};
+  DATA.prog = res.prog || {years:[],rows:[]};
+  DATA.camp = res.camp || {years:[],rows:[]};
+  GENERATED_AT = res.generatedAt || (BLOB && BLOB.generatedAt) || null;
+  if (res.errors && Object.keys(res.errors).length) console.warn('일부 시트 로드 실패:', res.errors);
+  if (res.includeComments === false) console.info('주관식 원문은 이 사이트에 포함되지 않았습니다.');
+  showStamp(res);
+}
+
 function loadAll() {
-  setContent('<div class="loading">⏳ 데이터를 불러오는 중...</div>');
   // 브라우저 캐시를 피해 항상 최신 파일을 받는다
-  fetch('data.json?t=' + Date.now(), { cache: 'no-store' })
+  return fetch('data.json?t=' + Date.now(), { cache: 'no-store' })
     .then(r => {
       if (!r.ok) throw new Error('data.json 을 불러오지 못했습니다 (HTTP ' + r.status + ')');
       return r.json();
     })
-    .then(res => {
-      DATA.free = res.free || {years:[],rows:[]};
-      DATA.educ = res.educ || {years:[],rows:[]};
-      DATA.prog = res.prog || {years:[],rows:[]};
-      DATA.camp = res.camp || {years:[],rows:[]};
-      GENERATED_AT = res.generatedAt || null;
-      if (res.errors && Object.keys(res.errors).length) console.warn('일부 시트 로드 실패:', res.errors);
-      if (res.includeComments === false) console.info('주관식 원문은 이 사이트에 포함되지 않았습니다.');
-      showStamp(res);
+    .then(async res => {
+      if (!res.encrypted) {          // 암호화 안 된 파일도 그대로 받아들인다
+        BLOB = res;
+        applyPayload(res);
+        document.getElementById('gate').style.display = 'none';
+        document.getElementById('app').style.display = 'block';
+        populateSelects();
+        render();
+        return;
+      }
+      BLOB = res;
+      showGateInfo(res);
+      // 같은 탭에서 이미 한 번 열었으면 다시 묻지 않는다
+      const saved = sessionStorage.getItem(PW_KEY);
+      if (saved) await unlock(saved);
+      else document.getElementById('pwInput').focus();
+    })
+    .catch(e => {
+      const msg = e && e.message ? e.message : String(e);
+      document.getElementById('gateError').textContent = msg;
+      document.getElementById('gateFoot').innerHTML =
+        'GitHub의 <b>Actions</b> 탭에서<br><b>데이터 갱신 &amp; 배포</b>가 성공했는지 확인해 주세요.';
+      console.error(e);
+    });
+}
+
+// 잠금 화면 아래에 마지막 갱신 시각을 보여 준다 (내용은 아직 잠긴 상태)
+function showGateInfo(blob) {
+  const el = document.getElementById('gateFoot');
+  if (!el) return;
+  el.textContent = blob.generatedAt ? '데이터 갱신 ' + fmtTime(blob.generatedAt) : '';
+}
+
+function fmtTime(iso) {
+  const d = new Date(iso);
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}.${p(d.getMonth()+1)}.${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+// 새로고침 — 파일을 다시 받아 기억해 둔 비밀번호로 푼다
+function loadCurrent() {
+  if (!PASSWORD) { loadAll(); return; }
+  setContent('<div class="loading">⏳ 새로고침 중...</div>');
+  fetch('data.json?t=' + Date.now(), { cache: 'no-store' })
+    .then(r => r.json())
+    .then(async res => {
+      BLOB = res;
+      const payload = res.encrypted ? await decryptPayload(res, PASSWORD) : res;
+      applyPayload(payload);
       populateSelects();
       render();
     })
     .catch(e => {
-      setContent('<div class="empty">데이터를 불러오지 못했습니다.<br><br><code>'
-        + escHtml(e && e.message ? e.message : String(e)) + '</code><br><br>'
-        + 'GitHub의 <b>Actions</b> 탭에서 <b>데이터 갱신 &amp; 배포</b> 워크플로가<br>'
-        + '성공했는지 확인해 주세요.</div>');
+      setContent('<div class="empty">새로고침에 실패했습니다.<br><br><code>'
+        + escHtml(e && e.message ? e.message : String(e)) + '</code></div>');
     });
 }
 
-function loadCurrent() {
-  DATA = {free:null,educ:null,prog:null,camp:null};
-  loadAll();
+// 잠그기 — 기억해 둔 비밀번호를 지우고 잠금 화면으로 돌아간다
+function lock() {
+  PASSWORD = null;
+  sessionStorage.removeItem(PW_KEY);
+  DATA = { free:null, educ:null, prog:null, camp:null };
+  document.getElementById('app').style.display = 'none';
+  const gate = document.getElementById('gate');
+  gate.style.display = 'flex';
+  gate.style.opacity = '1';
+  const inp = document.getElementById('pwInput');
+  inp.value = ''; inp.disabled = false;
+  for (let i=0;i<4;i++) document.getElementById('d'+i).classList.remove('filled','error');
+  document.getElementById('gateError').textContent = '';
+  setGateBusy(false);
+  inp.focus();
 }
 
-// 헤더에 '마지막 갱신' 시각을 찍는다 (데이터가 실시간이 아니므로 반드시 보여 준다)
+// 헤더에 '갱신 ○○' 시각을 찍는다 (데이터가 실시간이 아니므로 반드시 보여 준다)
 function showStamp(res) {
   const el = document.getElementById('stamp');
   if (!el) return;
-  if (!res.generatedAt) { el.textContent = ''; return; }
-  const d = new Date(res.generatedAt);
-  const p = n => String(n).padStart(2, '0');
-  let t = `${d.getFullYear()}.${p(d.getMonth()+1)}.${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+  const at = res.generatedAt || (BLOB && BLOB.generatedAt);
+  if (!at) { el.textContent = ''; return; }
+  let t = fmtTime(at);
   const failed = res.errors ? Object.keys(res.errors) : [];
   if (failed.length) t += ' · ⚠ ' + failed.join(',') + ' 읽기 실패';
   el.textContent = '갱신 ' + t;
@@ -321,14 +534,12 @@ function showStamp(res) {
 }
 
 function applyImages() {
-  // 로고·전경은 site/ 에 파일로 둔다. 없으면 조용히 숨긴다.
-  ['headerLogoImg'].forEach(id => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.onload  = () => { el.style.display = 'block'; };
-    el.onerror = () => { el.style.display = 'none'; };
-    el.src = 'logo.png';
-  });
+  // 로고는 site/logo.png 에 파일로 둔다. 없으면 조용히 숨긴다.
+  const el = document.getElementById('headerLogoImg');
+  if (!el) return;
+  el.onload  = () => { el.style.display = 'block'; };
+  el.onerror = () => { el.style.display = 'none'; };
+  el.src = 'logo.png';
 }
 
 // ══════════════════════════════════════════
@@ -1127,6 +1338,11 @@ document.getElementById('selMonth').addEventListener('change', render);
 (function init(){
   buildTabBar();
   applyImages();
+  if (!(window.crypto && crypto.subtle)) {
+    document.getElementById('gateError').textContent =
+      '이 브라우저에서는 복호화를 지원하지 않습니다. 최신 크롬/엣지로 열어 주세요.';
+    return;
+  }
   loadAll();
 })();
 </script>
