@@ -21,7 +21,7 @@ const win = {};
 
 const fetchStub = () => Promise.reject(new Error('테스트에서는 data.json을 받지 않는다'));
 const fn = new Function('document','sessionStorage','navigator','window','console','fetch',
-  code + '\nreturn {buildReport, DATA, setD:(d)=>{DATA=d}, classifyPerson, reportCat, schoolLevelOfCamp, itemStat};');
+  code + '\nreturn {buildReport, DATA, setD:(d)=>{DATA=d}, classifyPerson, reportCat, schoolLevelOfCamp, itemStat, mapProgRespondent, buildProg};');
 const M = fn(document, sessionStorage, navigator, win, console, fetchStub);
 
 // ── 스크린샷 수치를 재현하는 합성 데이터 ──
@@ -115,6 +115,38 @@ eq("'초등학생' → 초",            M.classifyPerson('초등학생'), '초')
 eq("'학생'(구버전) → 초",        M.classifyPerson('학생'), '초');
 eq("'교직원' → 교원",            M.classifyPerson('교직원'), '교원');
 eq("캠프 '고등학생 인공지능수학캠프' → 고", M.schoolLevelOfCamp('고등학생 인공지능수학캠프'), '고');
+
+console.log('\n[학교·가족 응답자 분류] "학생"으로 뭉개지 않는다');
+eq("'초등학생' → 초등학생",       M.mapProgRespondent('초등학생'), '초등학생');
+eq("'중학생' → 중학생",           M.mapProgRespondent('중학생'), '중학생');
+eq("'고등학생' → 고등학생",       M.mapProgRespondent('고등학생'), '고등학생');
+eq("'유아' → 유아",               M.mapProgRespondent('유아'), '유아');
+eq("'학생'(구버전, 학년 없음) → 초등학생 (classifyPerson과 동일 규칙)",
+   M.mapProgRespondent('학생'), '초등학생');
+eq("'초등학생 학부모' → 학부모 등 보호자 (학년보다 학부모 우선)",
+   M.mapProgRespondent('초등학생 학부모'), '학부모 등 보호자');
+eq("'교사' → 교원",               M.mapProgRespondent('교사'), '교원');
+eq("빈 문자열 → null",            M.mapProgRespondent(''), null);
+
+console.log('\n[학교·가족 상세 탭] 대상별 카드에 학년이 나뉘어 나온다');
+{
+  const rows = [
+    {year:2026,month:9,day:1,programType:'가족수학체험프로그램',respondent:'초등학생',scores:[5,5,5,5,5,5,5,5,5],comment1:'',comment2:'',comment3:''},
+    {year:2026,month:9,day:1,programType:'가족수학체험프로그램',respondent:'초등학생',scores:[5,5,5,5,5,5,5,5,5],comment1:'',comment2:'',comment3:''},
+    {year:2026,month:9,day:1,programType:'가족수학체험프로그램',respondent:'중학생',scores:[4,4,4,4,4,4,4,4,4],comment1:'',comment2:'',comment3:''},
+    {year:2026,month:9,day:1,programType:'가족수학체험프로그램',respondent:'학부모',scores:[5,5,5,5,5,5,5,5,5],comment1:'',comment2:'',comment3:''},
+  ];
+  M.setD({ free:{years:[],rows:[]}, educ:{years:[],rows:[]},
+           prog:{years:[2026],rows:rows}, camp:{years:[],rows:[]} });
+  const tab = { kind:'prog', label:'', src:'prog', field:'programType', filter:'가족수학체험프로그램' };
+  const html = M.buildProg(2026, 9, tab);
+  eq('화면에 "초등학생 2명" 카드가 있다 (뭉개진 "학생"이 아니라)',
+     html.includes('초등학생') && html.includes('>2<'), true);
+  eq('화면에 "중학생 1명" 카드가 있다',
+     html.includes('중학생') && html.includes('>1<'), true);
+  eq('통계 표에도 초등학생·중학생이 따로 행으로 나온다',
+     (html.match(/초등학생/g) || []).length >= 1 && (html.match(/중학생/g) || []).length >= 1, true);
+}
 
 console.log(fail ? `\n❌ 실패 ${fail}건\n` : '\n✅ 전부 통과\n');
 process.exit(fail ? 1 : 0);

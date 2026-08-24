@@ -295,12 +295,18 @@ function mapFreeParticipant(v) {
 }
 
 // 학교·가족 C열 응답자 값 정규화 — 다양한 표기를 통일
+// ⚠ '학생'으로 뭉개면 안 된다 — 유아/초/중/고를 구분해서 반환한다.
+//   월말 집계 쪽 classifyPerson()과 같은 분류·같은 폴백 규칙을 쓴다.
 function mapProgRespondent(v) {
   const s = (v||'').trim();
+  if (!s) return null; // 빈값 제외
   if (s.includes('학부모') || s.includes('보호자')) return '학부모 등 보호자';
-  if (s.includes('학생')) return '학생';
   if (s.includes('교원') || s.includes('교사') || s.includes('교직원')) return '교원';
-  if (s === '') return null; // 빈값 제외
+  if (s.includes('유아')) return '유아';
+  if (s.includes('초등')) return '초등학생';
+  if (s.includes('중학')) return '중학생';
+  if (s.includes('고등')) return '고등학생';
+  if (s.includes('학생')) return '초등학생'; // 학년 표기 없는 구버전 — classifyPerson()과 동일한 규칙
   return '그외';
 }
 
@@ -893,8 +899,8 @@ function buildProg(year,month,tab) {
 
   const isSchool = tab.filter.indexOf('학교') === 0;
   const respCats = isSchool
-    ? ['학생','교원','학부모 등 보호자','그외']
-    : ['학생','학부모 등 보호자','그외'];
+    ? ['유아','초등학생','중학생','고등학생','교원','학부모 등 보호자','그외']
+    : ['유아','초등학생','중학생','고등학생','학부모 등 보호자','그외'];
 
   const catMap={};
   respCats.forEach(c=>catMap[c]=rows.filter(r=>r.respondent===c));
