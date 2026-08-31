@@ -9,7 +9,7 @@ Apps Script를 쓰지 않는다. **정적 사이트 + 빌드 타임 데이터 �
 
 ```
 구글 시트 4개
-   ↓  GitHub Actions (하루 3회 + 수동 + push)
+   ↓  GitHub Actions (매시 정각 + 수동 + push)
 site/data.json              ← 생성물. 커밋하지 않는다(.gitignore)
    ↓  GitHub Pages
 site/index.html             ← 브라우저가 fetch해서 통계 계산

@@ -8,7 +8,7 @@ GitHub Pages가 정적 사이트로 서빙한다. **배포는 `git push`.**
 
 ```
 구글 시트 4개
-   ↓  GitHub Actions (하루 3회 + 수동)
+   ↓  GitHub Actions (매시 정각 + 수동)
 site/data.json
    ↓  GitHub Pages
 site/index.html  ← 브라우저에서 통계 계산
@@ -74,7 +74,7 @@ CLAUDE.md           작업 시 참고할 프로젝트 컨텍스트
 
 ## 이후 사용
 
-- **데이터만 새로 받기**: Actions 탭 → Run workflow (또는 하루 3회 자동)
+- **데이터만 새로 받기**: Actions 탭 → Run workflow (또는 매시 정각 자동)
 - **화면·계산 수정**: `site/index.html` 고쳐서 push → 자동 재배포
 - **컬럼·시트 변경**: `scripts/fetch-sheets.mjs`의 `SOURCES` 수정
 
