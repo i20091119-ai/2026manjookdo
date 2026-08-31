@@ -110,7 +110,7 @@ export function parseTs(ts) {
  * 만족도 응답 텍스트 → 1~5 점수. 인식 못 하면 null(통계에서 제외).
  *
  * 네 세대의 표현이 한 시트에 섞여 있어 전부 받아야 한다.
- *   구버전  : 매우 그렇다 / 그렇다 / 보통이다 / 그렇지 않다 / 전혀 그렇지 않다
+ *   구버전  : 매우 그렇다(매우그렇다) / 그렇다 / 보통이다 / 그렇지 않다 / 전혀 그렇지 않다
  *   신버전  : 매우 만족 / 만족 / 보통 / 불만족 / 매우 불만족
  *   복합형  : 매우 만족(매우 그렇다) ...
  *   선형배율: 5 / 4 / 3 / 2 / 1  (구글 폼 '선형 배율' 문항)
@@ -129,7 +129,7 @@ export function scoreToNum(str) {
   if (s.indexOf('매우 불만족') === 0 || s.indexOf('매우불만족') === 0) return 1;
   if (s.indexOf('매우 만족') === 0 || s.indexOf('매우만족') === 0) return 5;
   if (s.indexOf('전혀 그렇지 않다') === 0) return 1;
-  if (s.indexOf('매우 그렇다') === 0) return 5;
+  if (s.indexOf('매우 그렇다') === 0 || s.indexOf('매우그렇다') === 0) return 5;
   if (s.indexOf('불만족') === 0 || s.indexOf('그렇지 않다') === 0) return 2;
   if (s.indexOf('만족') === 0 || s.indexOf('그렇다') === 0) return 4;
   if (s.indexOf('보통') === 0) return 3;
@@ -138,7 +138,7 @@ export function scoreToNum(str) {
   if (s.includes('매우 불만족') || s.includes('매우불만족')) return 1;
   if (s.includes('매우 만족') || s.includes('매우만족')) return 5;
   if (s.includes('전혀 그렇지 않다')) return 1;
-  if (s.includes('매우 그렇다')) return 5;
+  if (s.includes('매우 그렇다') || s.includes('매우그렇다')) return 5;
   if (s.includes('불만족') || s.includes('그렇지 않다')) return 2;
   if (s.includes('만족') || s.includes('그렇다')) return 4;
   if (s.includes('보통')) return 3;
