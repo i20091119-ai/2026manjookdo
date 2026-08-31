@@ -274,11 +274,12 @@ const CAMP_ITEMS = [
 // ⚠ 배열이다(객체 아님). 긴 키가 먼저 와야 한다 —
 //   '초등학생 학부모'가 '초등학생'보다 앞에 있어야 학부모가 학생으로 안 샌다.
 const FREE_PART_ENTRIES = [
+  ['유아 학부모',    '유아'],   // ⚠ 유아는 설문을 스스로 못 써서 항상 '유아 학부모'로만 들어온다.
+                              //   그래서 다른 학부모류와 달리 보호자가 아니라 유아 본인으로 센다.
   ['학부모 등 보호자','학부모 등 보호자'],
   ['초등학생 학부모','학부모 등 보호자'],
   ['중학생 학부모',  '학부모 등 보호자'],
   ['고등학생 학부모','학부모 등 보호자'],
-  ['유아 학부모',    '학부모 등 보호자'],
   ['초등학생',       '초등학생'],
   ['중학생',         '중학생'],
   ['고등학생',       '고등학생'],
@@ -286,7 +287,7 @@ const FREE_PART_ENTRIES = [
   ['교사',           '교원'],
   ['일반인',         '그외'],
 ];
-const FREE_PART_CATS = ['초등학생','중학생','고등학생','교원','학부모 등 보호자','그외'];
+const FREE_PART_CATS = ['유아','초등학생','중학생','고등학생','교원','학부모 등 보호자','그외'];
 
 function mapFreeParticipant(v) {
   const val = (v||'').trim();
@@ -1012,13 +1013,17 @@ function schoolLevelOfCamp(name) {
   return '일반';
 }
 
-// 응답자 텍스트 → 7분류. 긴 키(학부모/보호자)를 먼저 검사한다.
+// 응답자 텍스트 → 7분류.
+// ⚠ '유아'를 학부모/보호자보다 먼저 검사한다. 유아는 설문을 스스로 못 써서
+//   항상 '유아 학부모'로만 들어오는데, 이걸 다른 'OO 학부모'처럼 보호자로 세면
+//   유아 헤드카운트가 자유관람에서 영원히 0이 된다(2026-09 발견·수정).
+//   '학부모'/'보호자'는 그다음으로 긴 키를 검사한다.
 function classifyPerson(v) {
   const s = String(v||'').trim();
   if (!s) return null;
+  if (s.includes('유아')) return '유';
   if (s.includes('학부모') || s.includes('보호자')) return '보호자';
   if (s.includes('교원') || s.includes('교사') || s.includes('교직원')) return '교원';
-  if (s.includes('유아')) return '유';
   if (s.includes('초등')) return '초';
   if (s.includes('중학')) return '중';
   if (s.includes('고등')) return '고';
@@ -1118,7 +1123,7 @@ function repTable1(P, year, month, tsv) {
   tsv.t1 = body;
   return `<div class="rep-sec">
     <div class="rep-sec-title">
-      <h3>📋 1. 운영 현황 <small>(총괄 집계 양식 · ${year}년 ${month}월 · 단위: 명/건)</small></h3>
+      <h3>📋 1. 운영 현황 <small>(총괄 집계 양식 · ${year}년 ${month}월 · 단위: 명/건 · 만족도 설문 응답 기준, 실제 체험인원과 다를 수 있음)</small></h3>
       <button class="btn-copy" onclick="copyRep('t1',this)">📋 복사</button>
     </div>
     <div class="scroll-x"><table class="rep">

@@ -21,7 +21,7 @@ const win = {};
 
 const fetchStub = () => Promise.reject(new Error('테스트에서는 data.json을 받지 않는다'));
 const fn = new Function('document','sessionStorage','navigator','window','console','fetch',
-  code + '\nreturn {buildReport, DATA, setD:(d)=>{DATA=d}, classifyPerson, reportCat, schoolLevelOfCamp, itemStat, mapProgRespondent, buildProg};');
+  code + '\nreturn {buildReport, DATA, setD:(d)=>{DATA=d}, classifyPerson, reportCat, schoolLevelOfCamp, itemStat, mapProgRespondent, buildProg, mapFreeParticipant, buildFree};');
 const M = fn(document, sessionStorage, navigator, win, console, fetchStub);
 
 // ── 스크린샷 수치를 재현하는 합성 데이터 ──
@@ -109,8 +109,10 @@ eq('1-(03) 캠프 14명 → 만족이상 14*4=56 중 실제 56, 강사 14 (신�
    T.t4[idxS('1-(03)')], [14,4,56,'100.0',14,1,14,'100.0']);
 
 console.log('\n[분류] 긴 키 우선 검사');
-eq("'초등학생 학부모' → 보호자", M.classifyPerson('초등학생 학부모'), '보호자');
-eq("'유아 학부모' → 보호자",     M.classifyPerson('유아 학부모'), '보호자');
+eq("'유아 학부모' → 유 (2026-09~: 유아는 스스로 응답 못 해서 항상 이 표기뿐이라, 다른 'OO 학부모'와 달리 유아 본인으로 센다)",
+   M.classifyPerson('유아 학부모'), '유');
+eq("'초등학생 학부모' → 여전히 보호자 (유아만 예외, 나머지 학년은 그대로 학부모 우선)",
+   M.classifyPerson('초등학생 학부모'), '보호자');
 eq("'초등학생' → 초",            M.classifyPerson('초등학생'), '초');
 eq("'학생'(구버전) → 초",        M.classifyPerson('학생'), '초');
 eq("'교직원' → 교원",            M.classifyPerson('교직원'), '교원');
@@ -146,6 +148,32 @@ console.log('\n[학교·가족 상세 탭] 대상별 카드에 학년이 나뉘�
      html.includes('중학생') && html.includes('>1<'), true);
   eq('통계 표에도 초등학생·중학생이 따로 행으로 나온다',
      (html.match(/초등학생/g) || []).length >= 1 && (html.match(/중학생/g) || []).length >= 1, true);
+}
+
+console.log('\n[자유관람 응답자 분류] 유아 학부모 → 유아 (2026-09 수정)');
+eq("mapFreeParticipant('유아 학부모') → 유아",
+   M.mapFreeParticipant('유아 학부모'), '유아');
+eq("mapFreeParticipant('초등학생 학부모') → 학부모 등 보호자 (유아만 예외)",
+   M.mapFreeParticipant('초등학생 학부모'), '학부모 등 보호자');
+eq("mapFreeParticipant('학부모 등 보호자') → 학부모 등 보호자 (신버전 그대로)",
+   M.mapFreeParticipant('학부모 등 보호자'), '학부모 등 보호자');
+
+console.log('\n[자유관람 상세 탭] 유아 학부모가 유아 카드로 나오고 보호자에 안 섞인다');
+{
+  // 유아 학부모 3명 + 초등학생 학부모 2명 + 일반 학부모 표기 1명 = 보호자류 6명 중 유아 3명만 분리
+  const who = i => ({
+    participant: i < 3 ? '유아 학부모' : i < 5 ? '초등학생 학부모' : '학부모 등 보호자',
+  });
+  const rows = mkRows(6, [{5:6},{5:6},{5:6},{5:6},{5:6},{5:6},{5:6},{5:6}], who);
+  M.setD({ free:{years:[2026],rows}, educ:{years:[],rows:[]},
+           prog:{years:[],rows:[]}, camp:{years:[],rows:[]} });
+  const tab = { kind:'free', label:'', src:'free' };
+  const html = M.buildFree(2026, 8, tab);
+  eq('유아 카드 3명이 표시된다', html.includes('유아') && html.includes('>3<'), true);
+  eq('보호자 카드는 3명(유아 3명 제외한 나머지)만 표시된다', html.includes('>3<') &&
+     (html.match(/>3</g) || []).length >= 2 /* 유아 카드, 보호자 카드 각각 3 */, true);
+  eq('유아가 "그 외"로 새지 않는다 (예전엔 매핑이 없어 그외로 빠졌었다)',
+     !new RegExp('그외</td><td class="num">6').test(html), true);
 }
 
 console.log(fail ? `\n❌ 실패 ${fail}건\n` : '\n✅ 전부 통과\n');
