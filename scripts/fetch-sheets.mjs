@@ -231,12 +231,31 @@ async function getAccessToken(sa) {
   return (await res.json()).access_token;
 }
 
-async function api(token, url) {
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+/**
+ * 구글 API 호출 + 재시도.
+ *
+ * 시트 API가 이따금 '503 The service is currently unavailable' 같은
+ * 일시적 오류를 던진다 — 우리 쪽 설정 문제가 아니라 구글 쪽 순간 장애다.
+ * 이걸 그냥 실패로 두면 그 시간에 한해 해당 설문이 통째로 비어 버린다.
+ *
+ * ⚠ 5xx·429(과다 요청)만 재시도한다. 403(권한)·404(시트 없음)·400(잘못된 요청)은
+ *   재시도해도 똑같이 실패하는 설정 문제라 즉시 던진다.
+ */
+async function api(token, url, attempt = 1) {
   const res = await fetch(url, { headers: { Authorization: 'Bearer ' + token } });
   if (!res.ok) {
     const body = await res.text();
     const err = new Error(`${res.status} ${body.slice(0, 300)}`);
     err.status = res.status;
+    const transient = res.status >= 500 || res.status === 429;
+    if (transient && attempt < 4) {
+      const wait = 500 * 2 ** (attempt - 1); // 0.5s → 1s → 2s
+      console.warn(`  ⚠ 구글 API 일시 오류(${res.status}), ${wait}ms 후 재시도 (${attempt}/3)`);
+      await sleep(wait);
+      return api(token, url, attempt + 1);
+    }
     throw err;
   }
   return res.json();
